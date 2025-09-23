@@ -3,6 +3,7 @@
 # Binaries
 streaming-server
 streaming-server.exe
+standalone-stream-server
 
 # Logs
 logs/
@@ -16,9 +17,12 @@ videos/
 *.mkv
 *.webm
 *.flv
+*.m4v
+*.3gp
 
-# Config files (optional - comment out if you want to track configs)
-# config.json
+# Config files (keep default config, ignore custom configs)
+config.yaml
+!configs/config.yaml
 
 # System service files
 *.service
@@ -28,8 +32,8 @@ videos/
 # docker-compose.yml
 # .dockerignore
 
-# Go build cache
-go.sum
+# Go build cache (keep go.sum for reproducible builds)
+# go.sum
 
 # IDE files
 .idea/
@@ -43,3 +47,8 @@ Thumbs.db
 
 # Test files
 test_upload.*
+
+# Temporary files
+tmp/
+*.tmp
+*.temp

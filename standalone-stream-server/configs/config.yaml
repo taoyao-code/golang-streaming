@@ -1,0 +1,58 @@
+server:
+  port: 9000
+  host: "0.0.0.0"
+  read_timeout: "30s"
+  write_timeout: "30s"
+  max_connections: 100
+  graceful_timeout: "30s"
+
+video:
+  directories:
+    - name: "movies"
+      path: "./videos/movies"
+      description: "Movie collection"
+      enabled: true
+    - name: "series"
+      path: "./videos/series"
+      description: "TV series collection"
+      enabled: true
+    - name: "documentaries"
+      path: "./videos/docs"
+      description: "Documentary collection"
+      enabled: false
+  max_upload_size: 104857600  # 100MB in bytes
+  supported_formats: [".mp4", ".avi", ".mov", ".mkv", ".webm", ".flv", ".m4v", ".3gp"]
+  streaming:
+    cache_control: "public, max-age=3600"
+    buffer_size: 32768  # 32KB
+    range_support: true
+    chunk_size: 1048576  # 1MB
+    connection_timeout: "60s"
+
+logging:
+  level: "info"  # debug, info, warn, error
+  format: "json"  # json, text
+  output: "stdout"  # stdout, stderr, file
+  access_log: true
+  error_log: true
+
+security:
+  cors:
+    enabled: true
+    allowed_origins: ["*"]
+    allowed_methods: ["GET", "POST", "OPTIONS"]
+    allowed_headers: ["Content-Type", "Range", "Authorization"]
+  
+  rate_limit:
+    enabled: true
+    requests_per_minute: 60
+    burst_size: 10
+    cleanup_time: "5m"
+  
+  auth:
+    enabled: false
+    type: "none"  # none, api_key, basic
+    api_key: ""
+    basic_auth:
+      username: ""
+      password: ""
