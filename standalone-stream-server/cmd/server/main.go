@@ -14,6 +14,7 @@ import (
 	"standalone-stream-server/internal/handlers"
 	"standalone-stream-server/internal/middleware"
 	"standalone-stream-server/internal/models"
+	"standalone-stream-server/internal/scheduler"
 	"standalone-stream-server/internal/services"
 
 	"github.com/gofiber/fiber/v2"
@@ -54,6 +55,7 @@ func main() {
 
 	// 初始化服务
 	videoService := services.NewVideoService(cfg)
+	schedulerService := scheduler.NewSchedulerService(cfg)
 
 	// 创建 Fiber 应用并配置
 	app := fiber.New(fiber.Config{
@@ -80,9 +82,15 @@ func main() {
 	healthHandler := handlers.NewHealthHandler(cfg, videoService, connLimiter)
 	videoHandler := handlers.NewVideoHandler(cfg, videoService)
 	uploadHandler := handlers.NewUploadHandler(cfg, videoService)
+	schedulerHandler := handlers.NewSchedulerHandler(cfg, schedulerService)
 
 	// 设置路由
-	setupRoutes(app, healthHandler, videoHandler, uploadHandler)
+	setupRoutes(app, healthHandler, videoHandler, uploadHandler, schedulerHandler)
+
+	// 启动调度器服务
+	if err := schedulerService.Start(); err != nil {
+		log.Printf("Warning: Failed to start scheduler service: %v", err)
+	}
 
 	// 启动服务器
 	addr := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)
@@ -104,6 +112,11 @@ func main() {
 
 	log.Println("正在优雅关闭...")
 
+	// 停止调度器服务
+	if err := schedulerService.Stop(); err != nil {
+		log.Printf("Warning: Failed to stop scheduler service: %v", err)
+	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), cfg.Server.GracefulTimeout)
 	defer cancel()
 
@@ -115,7 +128,7 @@ func main() {
 }
 
 // setupRoutes 配置所有应用路由
-func setupRoutes(app *fiber.App, health *handlers.HealthHandler, video *handlers.VideoHandler, upload *handlers.UploadHandler) {
+func setupRoutes(app *fiber.App, health *handlers.HealthHandler, video *handlers.VideoHandler, upload *handlers.UploadHandler, scheduler *handlers.SchedulerHandler) {
 	// 健康检查和监控端点
 	app.Get("/health", health.Health)
 	app.Get("/ping", health.Ping)
@@ -141,6 +154,16 @@ func setupRoutes(app *fiber.App, health *handlers.HealthHandler, video *handlers
 		// 视频信息
 		api.Get("/video/:video-id", video.GetVideoInfo)
 		api.Get("/video/:video-id/validate", video.ValidateVideo)
+		
+		// 流控统计
+		api.Get("/streaming/stats", video.GetFlowControlStats)
+		
+		// 调度器管理
+		api.Get("/scheduler/stats", scheduler.GetStats)
+		api.Get("/scheduler/status", scheduler.Status)
+		api.Post("/scheduler/start", scheduler.Start)
+		api.Post("/scheduler/stop", scheduler.Stop)
+		api.Post("/scheduler/video-delete/:video-id", scheduler.AddVideoDeletionTask)
 	}
 
 	// 视频流媒体端点（顺序很重要 - 更具体的路由在前）
@@ -164,7 +187,25 @@ func setupRoutes(app *fiber.App, health *handlers.HealthHandler, video *handlers
 		return c.SendFile("./web/player.html")
 	})
 
+	// Debug endpoint to list all routes
+	app.Get("/debug/routes", func(c *fiber.Ctx) error {
+		routes := app.GetRoutes()
+		var routeInfo []map[string]string
+		for _, route := range routes {
+			routeInfo = append(routeInfo, map[string]string{
+				"method": route.Method,
+				"path":   route.Path,
+			})
+		}
+		return c.JSON(fiber.Map{
+			"total_routes": len(routes),
+			"routes":       routeInfo,
+		})
+	})
+
 	// Catch-all for undefined routes
+	// TODO: Re-implement catch-all that doesn't interfere with API routes
+	/*
 	app.All("*", func(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 			"error":  "Endpoint not found",
@@ -190,6 +231,7 @@ func setupRoutes(app *fiber.App, health *handlers.HealthHandler, video *handlers
 			},
 		})
 	})
+	*/
 }
 
 // logStartupInfo logs server startup information
