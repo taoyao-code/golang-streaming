@@ -47,7 +47,7 @@ func Setup(app *fiber.App, config *models.Config) {
 // setupLogging configures logging middleware
 func setupLogging(app *fiber.App, config *models.Config) {
 	logConfig := logger.Config{
-		Format: "[${time}] ${status} - ${method} ${path} - ${ip} - ${latency}\n",
+		Format:     "[${time}] ${status} - ${method} ${path} - ${ip} - ${latency}\n",
 		TimeFormat: "2006-01-02 15:04:05",
 		TimeZone:   "Local",
 	}
@@ -83,7 +83,7 @@ func setupRateLimit(app *fiber.App, config *models.Config) {
 		},
 		LimitReached: func(c *fiber.Ctx) error {
 			return c.Status(fiber.StatusTooManyRequests).JSON(fiber.Map{
-				"error": "Rate limit exceeded",
+				"error":       "Rate limit exceeded",
 				"retry_after": "60 seconds",
 			})
 		},
@@ -153,7 +153,7 @@ func setupSecurity(app *fiber.App, config *models.Config) {
 		c.Set("X-Frame-Options", "DENY")
 		c.Set("X-XSS-Protection", "1; mode=block")
 		c.Set("Referrer-Policy", "strict-origin-when-cross-origin")
-		
+
 		// Server identification
 		c.Set("Server", "Standalone-Video-Streaming-Server/1.0")
 
@@ -211,8 +211,8 @@ func SetupConnectionLimiting(app *fiber.App, config *models.Config) *ConnectionL
 	app.Use(func(c *fiber.Ctx) error {
 		if !limiter.Acquire() {
 			return c.Status(fiber.StatusTooManyRequests).JSON(fiber.Map{
-				"error": "Server is at maximum capacity",
-				"max_connections": limiter.GetMaxConnections(),
+				"error":              "Server is at maximum capacity",
+				"max_connections":    limiter.GetMaxConnections(),
 				"active_connections": limiter.GetActiveConnections(),
 			})
 		}
@@ -246,7 +246,7 @@ func joinStringSlice(slice []string, sep string) string {
 // RequestLogger provides structured request logging
 func RequestLogger(config *models.Config) fiber.Handler {
 	return logger.New(logger.Config{
-		Format: createLogFormat(config.Logging.Format),
+		Format:     createLogFormat(config.Logging.Format),
 		TimeFormat: "2006-01-02T15:04:05.000Z",
 		TimeZone:   "UTC",
 		Output:     nil, // Will use default output
@@ -257,7 +257,7 @@ func createLogFormat(format string) string {
 	if format == "json" {
 		return `{"timestamp":"${time}","level":"info","method":"${method}","path":"${path}","status":${status},"latency":"${latency}","ip":"${ip}","user_agent":"${ua}","bytes_sent":${bytesSent},"bytes_received":${bytesReceived},"referer":"${referer}"}` + "\n"
 	}
-	
+
 	// Default text format
 	return "[${time}] ${ip} - ${method} ${path} ${status} ${latency} \"${ua}\"\n"
 }

@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -12,6 +13,7 @@
             padding: 20px;
             background-color: #f5f5f5;
         }
+
         .header {
             background-color: #2c3e50;
             color: white;
@@ -19,25 +21,30 @@
             border-radius: 8px;
             margin-bottom: 20px;
         }
+
         .container {
             background-color: white;
             padding: 20px;
             border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
             margin-bottom: 20px;
         }
+
         .video-container {
             text-align: center;
             margin: 20px 0;
         }
+
         video {
             max-width: 100%;
             border: 2px solid #3498db;
             border-radius: 8px;
         }
+
         .controls {
             margin: 20px 0;
         }
+
         button {
             background-color: #3498db;
             color: white;
@@ -47,36 +54,43 @@
             border-radius: 4px;
             cursor: pointer;
         }
+
         button:hover {
             background-color: #2980b9;
         }
+
         .video-list {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
             gap: 15px;
         }
+
         .video-item {
             background-color: #ecf0f1;
             padding: 15px;
             border-radius: 8px;
             border: 1px solid #bdc3c7;
         }
+
         .video-item:hover {
             background-color: #e8f4fd;
             cursor: pointer;
         }
+
         .api-info {
             background-color: #e8f5e8;
             padding: 15px;
             border-radius: 8px;
             border-left: 4px solid #27ae60;
         }
+
         .error {
             background-color: #fadbd8;
             padding: 15px;
             border-radius: 8px;
             border-left: 4px solid #e74c3c;
         }
+
         .upload-area {
             border: 2px dashed #3498db;
             padding: 30px;
@@ -84,23 +98,28 @@
             border-radius: 8px;
             background-color: #f8f9fa;
         }
+
         .upload-area.drag-over {
             background-color: #e3f2fd;
             border-color: #2196f3;
         }
+
         input[type="file"] {
             margin: 10px 0;
         }
+
         #progress {
             margin: 10px 0;
             display: none;
         }
+
         progress {
             width: 100%;
             height: 20px;
         }
     </style>
 </head>
+
 <body>
     <div class="header">
         <h1>🎬 Standalone Video Streaming Server</h1>
@@ -118,11 +137,12 @@
         <h2>🎥 Video Player</h2>
         <div class="video-container">
             <video id="videoPlayer" controls width="800" height="450">
-                <p>Your browser doesn't support HTML video. You can still 
-                   <a href="#" id="fallback-link">download the video</a>.</p>
+                <p>Your browser doesn't support HTML video. You can still
+                    <a href="#" id="fallback-link">download the video</a>.
+                </p>
             </video>
         </div>
-        
+
         <div class="controls">
             <h3>🎯 Seek Test (Click to Play at Position)</h3>
             <p>Test the range request functionality by jumping to specific positions:</p>
@@ -145,6 +165,13 @@
         <h2>⬆️ Upload Video</h2>
         <div class="upload-area" id="upload-area">
             <p>📎 Drag and drop a video file here, or click to select</p>
+            <div style="margin: 10px 0;">
+                <label for="upload-directory">Directory:</label>
+                <select id="upload-directory" style="margin-left: 10px;">
+                    <option value="movies">Movies</option>
+                    <option value="series">Series</option>
+                </select>
+            </div>
             <input type="file" id="file-input" accept="video/*" style="display: none;">
             <button onclick="document.getElementById('file-input').click()">Choose File</button>
             <div id="progress">
@@ -162,7 +189,7 @@
     </div>
 
     <script>
-        const SERVER_URL = 'http://localhost:9002';
+        const SERVER_URL = 'http://localhost:9000';
         let currentVideoId = null;
 
         // Load server status
@@ -192,15 +219,15 @@
             try {
                 const response = await fetch(`${SERVER_URL}/api/info`);
                 const data = await response.json();
-                
+
                 const endpointsHtml = Object.entries(data.endpoints)
                     .map(([endpoint, desc]) => `<li><code>${endpoint}</code> - ${desc}</li>`)
                     .join('');
-                
+
                 const featuresHtml = data.features
                     .map(feature => `<li>✨ ${feature}</li>`)
                     .join('');
-                
+
                 const formatsHtml = data.supported_formats
                     .map(format => `<code>${format}</code>`)
                     .join(', ');
@@ -231,7 +258,7 @@
             try {
                 const response = await fetch(`${SERVER_URL}/api/videos`);
                 const data = await response.json();
-                
+
                 if (data.videos.length === 0) {
                     document.getElementById('video-list').innerHTML = `
                         <div class="video-item">
@@ -254,7 +281,7 @@
                 `).join('');
 
                 document.getElementById('video-list').innerHTML = videosHtml;
-                
+
                 // Auto-play first video if none selected
                 if (!currentVideoId && data.videos.length > 0) {
                     playVideo(data.videos[0].id);
@@ -271,11 +298,11 @@
             currentVideoId = videoId;
             const videoPlayer = document.getElementById('videoPlayer');
             const fallbackLink = document.getElementById('fallback-link');
-            
+
             const streamUrl = `${SERVER_URL}/stream/${videoId}`;
             videoPlayer.src = streamUrl;
             fallbackLink.href = streamUrl;
-            
+
             console.log(`Playing video: ${videoId} from ${streamUrl}`);
         }
 
@@ -286,7 +313,7 @@
                 alert('Please select a video first!');
                 return;
             }
-            
+
             videoPlayer.currentTime = seconds;
             videoPlayer.play();
             console.log(`Seeking to ${seconds}s in video ${currentVideoId}`);
@@ -299,7 +326,7 @@
                 alert('Please select a video first!');
                 return;
             }
-            
+
             const info = `
 Video ID: ${currentVideoId}
 Duration: ${videoPlayer.duration ? videoPlayer.duration.toFixed(1) : 'Unknown'}s
@@ -310,7 +337,7 @@ Ready State: ${videoPlayer.readyState}
 Network State: ${videoPlayer.networkState}
 Source: ${videoPlayer.src}
             `.trim();
-            
+
             alert(info);
         }
 
@@ -363,8 +390,9 @@ Source: ${videoPlayer.src}
                     return;
                 }
 
-                const videoId = prompt('Enter a video ID (filename without extension):', 
-                                     file.name.replace(/\.[^/.]+$/, ""));
+                const directory = document.getElementById('upload-directory').value;
+                const videoId = prompt('Enter a video ID (filename without extension):',
+                    file.name.replace(/\.[^/.]+$/, ""));
                 if (!videoId) return;
 
                 const formData = new FormData();
@@ -375,7 +403,7 @@ Source: ${videoPlayer.src}
                 progressText.textContent = '0%';
 
                 try {
-                    const response = await fetch(`${SERVER_URL}/upload/${videoId}`, {
+                    const response = await fetch(`${SERVER_URL}/upload/${directory}/${videoId}`, {
                         method: 'POST',
                         body: formData
                     });
@@ -403,7 +431,7 @@ Source: ${videoPlayer.src}
             loadApiInfo();
             loadVideoList();
             setupUpload();
-            
+
             // Refresh every 30 seconds
             setInterval(() => {
                 loadServerStatus();
@@ -412,4 +440,5 @@ Source: ${videoPlayer.src}
         });
     </script>
 </body>
+
 </html>

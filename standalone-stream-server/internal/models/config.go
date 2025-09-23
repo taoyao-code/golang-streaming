@@ -23,9 +23,9 @@ type ServerConfig struct {
 // VideoConfig holds video-related configuration
 type VideoConfig struct {
 	Directories       []VideoDirectory `mapstructure:"directories" yaml:"directories"`
-	MaxUploadSize     int64           `mapstructure:"max_upload_size" yaml:"max_upload_size"`
-	SupportedFormats  []string        `mapstructure:"supported_formats" yaml:"supported_formats"`
-	StreamingSettings StreamSettings  `mapstructure:"streaming" yaml:"streaming"`
+	MaxUploadSize     int64            `mapstructure:"max_upload_size" yaml:"max_upload_size"`
+	SupportedFormats  []string         `mapstructure:"supported_formats" yaml:"supported_formats"`
+	StreamingSettings StreamSettings   `mapstructure:"streaming" yaml:"streaming"`
 }
 
 // VideoDirectory represents a video source directory
@@ -38,27 +38,27 @@ type VideoDirectory struct {
 
 // StreamSettings holds streaming-specific settings
 type StreamSettings struct {
-	CacheControl    string        `mapstructure:"cache_control" yaml:"cache_control"`
-	BufferSize      int           `mapstructure:"buffer_size" yaml:"buffer_size"`
-	RangeSupport    bool          `mapstructure:"range_support" yaml:"range_support"`
-	ChunkSize       int           `mapstructure:"chunk_size" yaml:"chunk_size"`
-	ConnTimeout     time.Duration `mapstructure:"connection_timeout" yaml:"connection_timeout"`
+	CacheControl string        `mapstructure:"cache_control" yaml:"cache_control"`
+	BufferSize   int           `mapstructure:"buffer_size" yaml:"buffer_size"`
+	RangeSupport bool          `mapstructure:"range_support" yaml:"range_support"`
+	ChunkSize    int           `mapstructure:"chunk_size" yaml:"chunk_size"`
+	ConnTimeout  time.Duration `mapstructure:"connection_timeout" yaml:"connection_timeout"`
 }
 
 // LoggingConfig holds logging configuration
 type LoggingConfig struct {
-	Level      string `mapstructure:"level" yaml:"level"`
-	Format     string `mapstructure:"format" yaml:"format"`
-	Output     string `mapstructure:"output" yaml:"output"`
-	AccessLog  bool   `mapstructure:"access_log" yaml:"access_log"`
-	ErrorLog   bool   `mapstructure:"error_log" yaml:"error_log"`
+	Level     string `mapstructure:"level" yaml:"level"`
+	Format    string `mapstructure:"format" yaml:"format"`
+	Output    string `mapstructure:"output" yaml:"output"`
+	AccessLog bool   `mapstructure:"access_log" yaml:"access_log"`
+	ErrorLog  bool   `mapstructure:"error_log" yaml:"error_log"`
 }
 
 // SecurityConfig holds security-related configuration
 type SecurityConfig struct {
-	CORS         CORSConfig `mapstructure:"cors" yaml:"cors"`
-	RateLimit    RateConfig `mapstructure:"rate_limit" yaml:"rate_limit"`
-	Auth         AuthConfig `mapstructure:"auth" yaml:"auth"`
+	CORS      CORSConfig `mapstructure:"cors" yaml:"cors"`
+	RateLimit RateConfig `mapstructure:"rate_limit" yaml:"rate_limit"`
+	Auth      AuthConfig `mapstructure:"auth" yaml:"auth"`
 }
 
 // CORSConfig holds CORS configuration

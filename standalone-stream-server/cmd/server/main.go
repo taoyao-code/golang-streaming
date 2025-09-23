@@ -66,7 +66,7 @@ func main() {
 				code = e.Code
 			}
 			return c.Status(code).JSON(fiber.Map{
-				"error": err.Error(),
+				"error":     err.Error(),
 				"timestamp": time.Now().Unix(),
 			})
 		},
@@ -86,7 +86,7 @@ func main() {
 
 	// Start server
 	addr := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)
-	
+
 	// Log startup information
 	logStartupInfo(cfg, addr)
 
@@ -103,7 +103,7 @@ func main() {
 	<-c
 
 	log.Println("Gracefully shutting down...")
-	
+
 	ctx, cancel := context.WithTimeout(context.Background(), cfg.Server.GracefulTimeout)
 	defer cancel()
 
@@ -130,27 +130,27 @@ func setupRoutes(app *fiber.App, health *handlers.HealthHandler, video *handlers
 	{
 		// Directory management
 		api.Get("/directories", video.ListDirectories)
-		
+
 		// Video listing
 		api.Get("/videos", video.ListAllVideos)
 		api.Get("/videos/:directory", video.ListVideosInDirectory)
-		
+
 		// Video search
 		api.Get("/search", video.SearchVideos)
-		
+
 		// Video information
 		api.Get("/video/:video-id", video.GetVideoInfo)
 		api.Get("/video/:video-id/validate", video.ValidateVideo)
 	}
 
 	// Video streaming endpoints (order matters - more specific routes first)
-	app.Get("/stream/:directory/:video-id", video.StreamVideoByDirectory)
-	app.Get("/stream/:video-id", video.StreamVideo)
+	app.Get("/stream/:directory/:videoid", video.StreamVideoByDirectory)
+	app.Get("/stream/:videoid", video.StreamVideo)
 
 	// Upload endpoints
 	upload_group := app.Group("/upload")
 	{
-		upload_group.Post("/:directory/:video-id", upload.UploadVideo)
+		upload_group.Post("/:directory/:videoid", upload.UploadVideo)
 		upload_group.Post("/:directory/batch", upload.UploadMultipleVideos)
 	}
 
@@ -167,15 +167,15 @@ func setupRoutes(app *fiber.App, health *handlers.HealthHandler, video *handlers
 	// Catch-all for undefined routes
 	app.All("*", func(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
-			"error": "Endpoint not found",
-			"path": c.Path(),
+			"error":  "Endpoint not found",
+			"path":   c.Path(),
 			"method": c.Method(),
 			"available_endpoints": []string{
 				"GET /health",
 				"GET /ping",
-				"GET /ready", 
+				"GET /ready",
 				"GET /live",
-				"GET /api/info", 
+				"GET /api/info",
 				"GET /api/videos",
 				"GET /api/videos/:directory",
 				"GET /api/directories",
@@ -197,7 +197,7 @@ func logStartupInfo(cfg *models.Config, addr string) {
 	log.Printf("🚀 Starting %s v%s", AppName, AppVersion)
 	log.Printf("📡 Server listening on %s", addr)
 	log.Printf("🎬 Video directories:")
-	
+
 	for _, dir := range cfg.Video.Directories {
 		status := "✅ enabled"
 		if !dir.Enabled {
@@ -205,14 +205,14 @@ func logStartupInfo(cfg *models.Config, addr string) {
 		}
 		log.Printf("   - %s: %s (%s)", dir.Name, dir.Path, status)
 	}
-	
+
 	log.Printf("⚙️  Configuration:")
 	log.Printf("   - Max connections: %d", cfg.Server.MaxConns)
 	log.Printf("   - Max upload size: %d MB", cfg.Video.MaxUploadSize/(1024*1024))
 	log.Printf("   - CORS enabled: %t", cfg.Security.CORS.Enabled)
 	log.Printf("   - Rate limiting: %t", cfg.Security.RateLimit.Enabled)
 	log.Printf("   - Authentication: %t (%s)", cfg.Security.Auth.Enabled, cfg.Security.Auth.Type)
-	
+
 	log.Printf("📋 API Endpoints:")
 	log.Printf("   - GET  /health                      - Health check and server status")
 	log.Printf("   - GET  /api/info                    - API information")
@@ -223,7 +223,7 @@ func logStartupInfo(cfg *models.Config, addr string) {
 	log.Printf("   - GET  /stream/:video-id            - Stream video (range requests supported)")
 	log.Printf("   - POST /upload/:directory/:video-id - Upload video")
 	log.Printf("   - POST /upload/:directory/batch     - Upload multiple videos")
-	
+
 	log.Printf("🎥 Supported formats: %v", cfg.Video.SupportedFormats)
 	log.Printf("✨ Ready to serve video streams!")
 }

@@ -24,28 +24,28 @@ func NewVideoService(config *models.Config) *VideoService {
 
 // VideoInfo represents video file information
 type VideoInfo struct {
-	ID          string                 `json:"id"`
-	Name        string                 `json:"name"`
-	Size        int64                  `json:"size"`
-	Modified    int64                  `json:"modified"`
-	ContentType string                 `json:"content_type"`
-	Directory   string                 `json:"directory"`
-	Path        string                 `json:"path"`
-	Extension   string                 `json:"extension"`
-	Metadata    VideoMetadata          `json:"metadata,omitempty"`
-	StreamURL   string                 `json:"stream_url"`
-	Available   bool                   `json:"available"`
+	ID          string        `json:"id"`
+	Name        string        `json:"name"`
+	Size        int64         `json:"size"`
+	Modified    int64         `json:"modified"`
+	ContentType string        `json:"content_type"`
+	Directory   string        `json:"directory"`
+	Path        string        `json:"path"`
+	Extension   string        `json:"extension"`
+	Metadata    VideoMetadata `json:"metadata,omitempty"`
+	StreamURL   string        `json:"stream_url"`
+	Available   bool          `json:"available"`
 }
 
 // VideoMetadata holds additional video information
 type VideoMetadata struct {
-	Duration    float64 `json:"duration,omitempty"`    // Duration in seconds
-	Bitrate     int64   `json:"bitrate,omitempty"`     // Bitrate in bps
-	Resolution  string  `json:"resolution,omitempty"`  // e.g., "1920x1080"
-	Codec       string  `json:"codec,omitempty"`       // Video codec
-	AudioCodec  string  `json:"audio_codec,omitempty"` // Audio codec
-	FrameRate   float64 `json:"frame_rate,omitempty"`  // FPS
-	Format      string  `json:"format,omitempty"`      // Container format
+	Duration   float64 `json:"duration,omitempty"`    // Duration in seconds
+	Bitrate    int64   `json:"bitrate,omitempty"`     // Bitrate in bps
+	Resolution string  `json:"resolution,omitempty"`  // e.g., "1920x1080"
+	Codec      string  `json:"codec,omitempty"`       // Video codec
+	AudioCodec string  `json:"audio_codec,omitempty"` // Audio codec
+	FrameRate  float64 `json:"frame_rate,omitempty"`  // FPS
+	Format     string  `json:"format,omitempty"`      // Container format
 }
 
 // DirectoryInfo represents directory information
@@ -104,7 +104,7 @@ func (vs *VideoService) ListVideosInDirectory(directoryName string) ([]VideoInfo
 
 		name := file.Name()
 		ext := strings.ToLower(filepath.Ext(name))
-		
+
 		if !vs.isVideoFile(ext) {
 			continue
 		}
@@ -337,13 +337,13 @@ func (vs *VideoService) GetStats() map[string]interface{} {
 	}
 
 	return map[string]interface{}{
-		"total_videos":      totalVideos,
-		"total_size":        totalSize,
+		"total_videos":        totalVideos,
+		"total_size":          totalSize,
 		"enabled_directories": enabledDirs,
-		"total_directories": len(vs.config.Video.Directories),
-		"supported_formats": vs.config.Video.SupportedFormats,
-		"max_upload_size":   vs.config.Video.MaxUploadSize,
-		"last_updated":      time.Now().Unix(),
+		"total_directories":   len(vs.config.Video.Directories),
+		"supported_formats":   vs.config.Video.SupportedFormats,
+		"max_upload_size":     vs.config.Video.MaxUploadSize,
+		"last_updated":        time.Now().Unix(),
 	}
 }
 
@@ -412,4 +412,29 @@ func (vs *VideoService) ValidateVideoFile(filePath string) error {
 	}
 
 	return nil
+}
+
+// SearchVideos searches for videos across all directories by name
+func (vs *VideoService) SearchVideos(query string) ([]VideoInfo, error) {
+	if query == "" {
+		return []VideoInfo{}, nil
+	}
+
+	query = strings.ToLower(query)
+	var results []VideoInfo
+
+	allVideos, err := vs.ListAllVideos()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, video := range allVideos {
+		// Search in video name (without extension)
+		videoName := strings.ToLower(strings.TrimSuffix(video.Name, video.Extension))
+		if strings.Contains(videoName, query) {
+			results = append(results, video)
+		}
+	}
+
+	return results, nil
 }

@@ -31,7 +31,7 @@ func (vh *VideoHandler) ListAllVideos(c *fiber.Ctx) error {
 	videos, err := vh.videoService.ListAllVideos()
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Failed to list videos",
+			"error":   "Failed to list videos",
 			"details": err.Error(),
 		})
 	}
@@ -65,7 +65,7 @@ func (vh *VideoHandler) ListVideosInDirectory(c *fiber.Ctx) error {
 	videos, err := vh.videoService.ListVideosInDirectory(directory)
 	if err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
-			"error": fmt.Sprintf("Failed to list videos in directory: %s", directory),
+			"error":   fmt.Sprintf("Failed to list videos in directory: %s", directory),
 			"details": err.Error(),
 		})
 	}
@@ -115,7 +115,7 @@ func (vh *VideoHandler) ListDirectories(c *fiber.Ctx) error {
 
 // StreamVideo streams a video file with range support
 func (vh *VideoHandler) StreamVideo(c *fiber.Ctx) error {
-	videoID := c.Params("video-id")
+	videoID := c.Params("videoid")
 	if videoID == "" {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "Video ID is required",
@@ -126,9 +126,9 @@ func (vh *VideoHandler) StreamVideo(c *fiber.Ctx) error {
 	video, err := vh.videoService.FindVideoByID(videoID)
 	if err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
-			"error": "Video not found",
+			"error":    "Video not found",
 			"video_id": videoID,
-			"details": err.Error(),
+			"details":  err.Error(),
 		})
 	}
 
@@ -137,22 +137,11 @@ func (vh *VideoHandler) StreamVideo(c *fiber.Ctx) error {
 
 // streamVideoFile handles the actual streaming logic for both streaming methods
 func (vh *VideoHandler) streamVideoFile(c *fiber.Ctx, video *services.VideoInfo) error {
-
-	// Open the video file
-	file, err := os.Open(video.Path)
+	// Get file info first
+	stat, err := os.Stat(video.Path)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Failed to open video file",
-			"details": err.Error(),
-		})
-	}
-	defer file.Close()
-
-	// Get file info
-	stat, err := file.Stat()
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Failed to get file information",
+			"error":   "Failed to get file information",
 			"details": err.Error(),
 		})
 	}
@@ -167,11 +156,20 @@ func (vh *VideoHandler) streamVideoFile(c *fiber.Ctx, video *services.VideoInfo)
 	// Handle range requests
 	rangeHeader := c.Get("Range")
 	if rangeHeader != "" && vh.config.Video.StreamingSettings.RangeSupport {
+		// For range requests, we still need to open the file manually
+		file, err := os.Open(video.Path)
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"error":   "Failed to open video file",
+				"details": err.Error(),
+			})
+		}
+		defer file.Close()
 		return vh.handleRangeRequest(c, file, stat.Size(), rangeHeader)
 	}
 
-	// Send entire file
-	return c.SendStream(file)
+	// Send entire file - use SendFile for better compatibility
+	return c.SendFile(video.Path)
 }
 
 // handleRangeRequest handles HTTP range requests for video seeking
@@ -185,7 +183,7 @@ func (vh *VideoHandler) handleRangeRequest(c *fiber.Ctx, file *os.File, fileSize
 
 	rangeSpec := strings.TrimPrefix(rangeHeader, "bytes=")
 	rangeParts := strings.Split(rangeSpec, "-")
-	
+
 	if len(rangeParts) != 2 {
 		return c.Status(fiber.StatusRequestedRangeNotSatisfiable).JSON(fiber.Map{
 			"error": "Invalid range specification",
@@ -233,7 +231,7 @@ func (vh *VideoHandler) handleRangeRequest(c *fiber.Ctx, file *os.File, fileSize
 	// Seek to start position
 	if _, err := file.Seek(start, 0); err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Failed to seek in file",
+			"error":   "Failed to seek in file",
 			"details": err.Error(),
 		})
 	}
@@ -275,9 +273,9 @@ func (vh *VideoHandler) GetVideoInfo(c *fiber.Ctx) error {
 	video, err := vh.videoService.FindVideoByID(videoID)
 	if err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
-			"error": "Video not found",
+			"error":    "Video not found",
 			"video_id": videoID,
-			"details": err.Error(),
+			"details":  err.Error(),
 		})
 	}
 
@@ -296,7 +294,7 @@ func (vh *VideoHandler) SearchVideos(c *fiber.Ctx) error {
 	allVideos, err := vh.videoService.ListAllVideos()
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Failed to search videos",
+			"error":   "Failed to search videos",
 			"details": err.Error(),
 		})
 	}
@@ -307,16 +305,21 @@ func (vh *VideoHandler) SearchVideos(c *fiber.Ctx) error {
 
 	for _, video := range allVideos {
 		if strings.Contains(strings.ToLower(video.Name), searchTerm) ||
-		   strings.Contains(strings.ToLower(video.ID), searchTerm) {
+			strings.Contains(strings.ToLower(video.ID), searchTerm) {
 			matchedVideos = append(matchedVideos, video)
 		}
 	}
 
+	// Ensure videos is always an array, even if empty
+	if matchedVideos == nil {
+		matchedVideos = []services.VideoInfo{}
+	}
+
 	response := fiber.Map{
-		"query":   query,
-		"videos":  matchedVideos,
-		"count":   len(matchedVideos),
-		"total":   len(allVideos),
+		"query":  query,
+		"videos": matchedVideos,
+		"count":  len(matchedVideos),
+		"total":  len(allVideos),
 	}
 
 	return c.JSON(response)
@@ -325,8 +328,8 @@ func (vh *VideoHandler) SearchVideos(c *fiber.Ctx) error {
 // StreamVideoByDirectory streams a video file from a specific directory
 func (vh *VideoHandler) StreamVideoByDirectory(c *fiber.Ctx) error {
 	directory := c.Params("directory")
-	videoID := c.Params("video-id")
-	
+	videoID := c.Params("videoid")
+
 	if directory == "" || videoID == "" {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "Both directory and video ID parameters are required",
@@ -335,15 +338,15 @@ func (vh *VideoHandler) StreamVideoByDirectory(c *fiber.Ctx) error {
 
 	// Construct the full video ID
 	fullVideoID := directory + ":" + videoID
-	
+
 	// Find the video
 	video, err := vh.videoService.FindVideoByID(fullVideoID)
 	if err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
-			"error": "Video not found",
+			"error":     "Video not found",
 			"directory": directory,
-			"video_id": videoID,
-			"details": err.Error(),
+			"video_id":  videoID,
+			"details":   err.Error(),
 		})
 	}
 
@@ -363,26 +366,26 @@ func (vh *VideoHandler) ValidateVideo(c *fiber.Ctx) error {
 	video, err := vh.videoService.FindVideoByID(videoID)
 	if err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
-			"error": "Video not found",
+			"error":    "Video not found",
 			"video_id": videoID,
-			"details": err.Error(),
+			"details":  err.Error(),
 		})
 	}
 
 	// Validate the video file
 	if err := vh.videoService.ValidateVideoFile(video.Path); err != nil {
 		return c.Status(fiber.StatusUnprocessableEntity).JSON(fiber.Map{
-			"error": "Video validation failed",
+			"error":    "Video validation failed",
 			"video_id": videoID,
-			"details": err.Error(),
-			"valid": false,
+			"details":  err.Error(),
+			"valid":    false,
 		})
 	}
 
 	return c.JSON(fiber.Map{
 		"video_id": videoID,
-		"valid": true,
-		"message": "Video file is valid and ready for streaming",
-		"video": video,
+		"valid":    true,
+		"message":  "Video file is valid and ready for streaming",
+		"video":    video,
 	})
 }

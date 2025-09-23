@@ -170,7 +170,7 @@ func ensureVideoDirectories(config *models.Config) error {
 			return fmt.Errorf("error getting absolute path for %s: %w", dir.Path, err)
 		}
 
-		if err := os.MkdirAll(absPath, 0755); err != nil {
+		if err := os.MkdirAll(absPath, 0o755); err != nil {
 			return fmt.Errorf("error creating directory %s: %w", absPath, err)
 		}
 	}
@@ -241,4 +241,45 @@ security:
       username: ""
       password: ""
 `
+}
+
+// Validate validates the configuration for correctness
+func Validate(config *models.Config) error {
+	// Validate server configuration
+	if config.Server.Port <= 0 || config.Server.Port > 65535 {
+		return fmt.Errorf("invalid port: %d", config.Server.Port)
+	}
+
+	if config.Server.MaxConns < 0 {
+		return fmt.Errorf("invalid max connections: %d", config.Server.MaxConns)
+	}
+
+	// Validate video configuration
+	if len(config.Video.Directories) == 0 {
+		return fmt.Errorf("no video directories configured")
+	}
+
+	if config.Video.MaxUploadSize < 0 {
+		return fmt.Errorf("invalid max upload size: %d", config.Video.MaxUploadSize)
+	}
+
+	// Validate video directories
+	for _, dir := range config.Video.Directories {
+		if dir.Name == "" {
+			return fmt.Errorf("directory name cannot be empty")
+		}
+
+		if dir.Path == "" {
+			return fmt.Errorf("directory path cannot be empty")
+		}
+
+		// Check if directory exists and is accessible
+		if dir.Enabled {
+			if _, err := os.Stat(dir.Path); os.IsNotExist(err) {
+				return fmt.Errorf("directory does not exist: %s", dir.Path)
+			}
+		}
+	}
+
+	return nil
 }

@@ -31,14 +31,14 @@ func NewUploadHandler(config *models.Config, videoService *services.VideoService
 // UploadVideo handles video file uploads to a specific directory
 func (uh *UploadHandler) UploadVideo(c *fiber.Ctx) error {
 	directory := c.Params("directory")
-	videoID := c.Params("video-id")
-	
+	videoID := c.Params("videoid")
+
 	if directory == "" {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "Directory parameter is required",
 		})
 	}
-	
+
 	if videoID == "" {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "Video ID parameter is required",
@@ -49,7 +49,7 @@ func (uh *UploadHandler) UploadVideo(c *fiber.Ctx) error {
 	form, err := c.MultipartForm()
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Failed to parse multipart form",
+			"error":   "Failed to parse multipart form",
 			"details": err.Error(),
 		})
 	}
@@ -59,7 +59,7 @@ func (uh *UploadHandler) UploadVideo(c *fiber.Ctx) error {
 	if len(files) == 0 {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "No file provided",
-			"hint": "Use 'file' as the form field name",
+			"hint":  "Use 'file' as the form field name",
 		})
 	}
 
@@ -68,8 +68,8 @@ func (uh *UploadHandler) UploadVideo(c *fiber.Ctx) error {
 	// Validate file size
 	if file.Size > uh.config.Video.MaxUploadSize {
 		return c.Status(fiber.StatusRequestEntityTooLarge).JSON(fiber.Map{
-			"error": "File size exceeds limit",
-			"max_size": uh.config.Video.MaxUploadSize,
+			"error":     "File size exceeds limit",
+			"max_size":  uh.config.Video.MaxUploadSize,
 			"file_size": file.Size,
 		})
 	}
@@ -78,8 +78,8 @@ func (uh *UploadHandler) UploadVideo(c *fiber.Ctx) error {
 	ext := strings.ToLower(filepath.Ext(file.Filename))
 	if !uh.isVideoFile(ext) {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Unsupported file format",
-			"extension": ext,
+			"error":             "Unsupported file format",
+			"extension":         ext,
 			"supported_formats": uh.config.Video.SupportedFormats,
 		})
 	}
@@ -88,7 +88,7 @@ func (uh *UploadHandler) UploadVideo(c *fiber.Ctx) error {
 	err = uh.videoService.SaveUploadedVideo(directory, file.Filename, file.Size)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Validation failed",
+			"error":   "Validation failed",
 			"details": err.Error(),
 		})
 	}
@@ -104,7 +104,7 @@ func (uh *UploadHandler) UploadVideo(c *fiber.Ctx) error {
 
 	if targetDir == nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
-			"error": "Directory not found or disabled",
+			"error":     "Directory not found or disabled",
 			"directory": directory,
 		})
 	}
@@ -113,7 +113,7 @@ func (uh *UploadHandler) UploadVideo(c *fiber.Ctx) error {
 	src, err := file.Open()
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Failed to open uploaded file",
+			"error":   "Failed to open uploaded file",
 			"details": err.Error(),
 		})
 	}
@@ -126,7 +126,7 @@ func (uh *UploadHandler) UploadVideo(c *fiber.Ctx) error {
 	// Ensure target directory exists
 	if err := os.MkdirAll(targetDir.Path, 0755); err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Failed to create target directory",
+			"error":   "Failed to create target directory",
 			"details": err.Error(),
 		})
 	}
@@ -134,10 +134,10 @@ func (uh *UploadHandler) UploadVideo(c *fiber.Ctx) error {
 	// Check if file already exists
 	if _, err := os.Stat(targetPath); err == nil {
 		return c.Status(fiber.StatusConflict).JSON(fiber.Map{
-			"error": "File already exists",
-			"video_id": videoID,
+			"error":     "File already exists",
+			"video_id":  videoID,
 			"directory": directory,
-			"filename": filename,
+			"filename":  filename,
 		})
 	}
 
@@ -145,7 +145,7 @@ func (uh *UploadHandler) UploadVideo(c *fiber.Ctx) error {
 	dst, err := os.Create(targetPath)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Failed to create target file",
+			"error":   "Failed to create target file",
 			"details": err.Error(),
 		})
 	}
@@ -157,7 +157,7 @@ func (uh *UploadHandler) UploadVideo(c *fiber.Ctx) error {
 		// Clean up partially written file
 		os.Remove(targetPath)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Failed to save file",
+			"error":   "Failed to save file",
 			"details": err.Error(),
 		})
 	}
@@ -166,9 +166,9 @@ func (uh *UploadHandler) UploadVideo(c *fiber.Ctx) error {
 	if bytesWritten != file.Size {
 		os.Remove(targetPath)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "File size mismatch during upload",
+			"error":    "File size mismatch during upload",
 			"expected": file.Size,
-			"written": bytesWritten,
+			"written":  bytesWritten,
 		})
 	}
 
@@ -179,15 +179,15 @@ func (uh *UploadHandler) UploadVideo(c *fiber.Ctx) error {
 	}
 
 	response := fiber.Map{
-		"message": "Upload successful",
-		"video_id": videoID,
-		"directory": directory,
-		"filename": filename,
+		"message":           "Upload successful",
+		"video_id":          videoID,
+		"directory":         directory,
+		"filename":          filename,
 		"original_filename": file.Filename,
-		"size": file.Size,
-		"bytes_written": bytesWritten,
-		"content_type": uh.getContentType(ext),
-		"path": targetPath,
+		"size":              file.Size,
+		"bytes_written":     bytesWritten,
+		"content_type":      uh.getContentType(ext),
+		"path":              targetPath,
 	}
 
 	if stat != nil {
@@ -200,7 +200,7 @@ func (uh *UploadHandler) UploadVideo(c *fiber.Ctx) error {
 // UploadMultipleVideos handles multiple video uploads to a specific directory
 func (uh *UploadHandler) UploadMultipleVideos(c *fiber.Ctx) error {
 	directory := c.Params("directory")
-	
+
 	if directory == "" {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "Directory parameter is required",
@@ -211,7 +211,7 @@ func (uh *UploadHandler) UploadMultipleVideos(c *fiber.Ctx) error {
 	form, err := c.MultipartForm()
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Failed to parse multipart form",
+			"error":   "Failed to parse multipart form",
 			"details": err.Error(),
 		})
 	}
@@ -221,7 +221,7 @@ func (uh *UploadHandler) UploadMultipleVideos(c *fiber.Ctx) error {
 	if len(files) == 0 {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "No files provided",
-			"hint": "Use 'files' as the form field name for multiple uploads",
+			"hint":  "Use 'files' as the form field name for multiple uploads",
 		})
 	}
 
@@ -232,13 +232,13 @@ func (uh *UploadHandler) UploadMultipleVideos(c *fiber.Ctx) error {
 	for _, file := range files {
 		// Generate video ID from filename (without extension)
 		videoID := strings.TrimSuffix(file.Filename, filepath.Ext(file.Filename))
-		
+
 		// Validate and process each file
 		result, err := uh.processUploadedFile(file, directory, videoID)
 		if err != nil {
 			errors = append(errors, fiber.Map{
 				"filename": file.Filename,
-				"error": err.Error(),
+				"error":    err.Error(),
 			})
 		} else {
 			results = append(results, result)
@@ -247,12 +247,12 @@ func (uh *UploadHandler) UploadMultipleVideos(c *fiber.Ctx) error {
 	}
 
 	response := fiber.Map{
-		"message": fmt.Sprintf("Processed %d files, %d successful, %d failed", len(files), successCount, len(errors)),
-		"directory": directory,
+		"message":     fmt.Sprintf("Processed %d files, %d successful, %d failed", len(files), successCount, len(errors)),
+		"directory":   directory,
 		"total_files": len(files),
-		"successful": successCount,
-		"failed": len(errors),
-		"results": results,
+		"successful":  successCount,
+		"failed":      len(errors),
+		"results":     results,
 	}
 
 	if len(errors) > 0 {
@@ -337,11 +337,11 @@ func (uh *UploadHandler) processUploadedFile(file *multipart.FileHeader, directo
 	}
 
 	return fiber.Map{
-		"video_id": videoID,
-		"filename": filename,
+		"video_id":          videoID,
+		"filename":          filename,
 		"original_filename": file.Filename,
-		"size": file.Size,
-		"path": targetPath,
+		"size":              file.Size,
+		"path":              targetPath,
 	}, nil
 }
 

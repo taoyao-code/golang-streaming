@@ -12,16 +12,16 @@ import (
 
 // HealthHandler handles health check requests
 type HealthHandler struct {
-	config           *models.Config
-	videoService     *services.VideoService
+	config            *models.Config
+	videoService      *services.VideoService
 	connectionLimiter *middleware.ConnectionLimiter
 }
 
 // NewHealthHandler creates a new health handler
 func NewHealthHandler(config *models.Config, videoService *services.VideoService, connLimiter *middleware.ConnectionLimiter) *HealthHandler {
 	return &HealthHandler{
-		config:           config,
-		videoService:     videoService,
+		config:            config,
+		videoService:      videoService,
 		connectionLimiter: connLimiter,
 	}
 }
@@ -29,7 +29,7 @@ func NewHealthHandler(config *models.Config, videoService *services.VideoService
 // Health returns server health status
 func (h *HealthHandler) Health(c *fiber.Ctx) error {
 	stats := h.videoService.GetStats()
-	
+
 	response := fiber.Map{
 		"status":    "healthy",
 		"timestamp": time.Now().Unix(),
@@ -59,18 +59,18 @@ func (h *HealthHandler) Health(c *fiber.Ctx) error {
 // Info returns API information
 func (h *HealthHandler) Info(c *fiber.Ctx) error {
 	directories := h.videoService.GetDirectoriesInfo()
-	
+
 	response := fiber.Map{
-		"service": "Standalone Video Streaming Server",
-		"version": "2.0.0",
+		"service":   "Standalone Video Streaming Server",
+		"version":   "2.0.0",
 		"framework": "GoFiber",
 		"endpoints": fiber.Map{
-			"GET /health":                    "Health check and server status",
-			"GET /api/info":                  "API information and capabilities",
-			"GET /api/videos":                "List all videos from all directories",
-			"GET /api/videos/:directory":     "List videos from specific directory",
-			"GET /api/directories":           "List all video directories",
-			"GET /stream/:video-id":          "Stream video (supports range requests)",
+			"GET /health":                       "Health check and server status",
+			"GET /api/info":                     "API information and capabilities",
+			"GET /api/videos":                   "List all videos from all directories",
+			"GET /api/videos/:directory":        "List videos from specific directory",
+			"GET /api/directories":              "List all video directories",
+			"GET /stream/:video-id":             "Stream video (supports range requests)",
 			"POST /upload/:directory/:video-id": "Upload video to specific directory",
 		},
 		"features": []string{
@@ -109,7 +109,7 @@ func (h *HealthHandler) Info(c *fiber.Ctx) error {
 // Ping provides a simple ping endpoint
 func (h *HealthHandler) Ping(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{
-		"message": "pong",
+		"message":   "pong",
 		"timestamp": time.Now().Unix(),
 	})
 }
@@ -119,7 +119,7 @@ func (h *HealthHandler) Ready(c *fiber.Ctx) error {
 	// Check if video directories are accessible
 	directories := h.videoService.GetDirectoriesInfo()
 	readyDirs := 0
-	
+
 	for _, dir := range directories {
 		if dir.Enabled {
 			readyDirs++
@@ -134,7 +134,7 @@ func (h *HealthHandler) Ready(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(fiber.Map{
-		"status": "ready",
+		"status":              "ready",
 		"enabled_directories": readyDirs,
 	})
 }
@@ -142,7 +142,7 @@ func (h *HealthHandler) Ready(c *fiber.Ctx) error {
 // Live provides a liveness probe endpoint
 func (h *HealthHandler) Live(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{
-		"status": "alive",
+		"status":    "alive",
 		"timestamp": time.Now().Unix(),
 	})
 }
