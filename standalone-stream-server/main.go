@@ -296,6 +296,11 @@ func apiInfoHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params)
 	sendJSONResponse(w, http.StatusOK, info)
 }
 
+// Test page handler
+func testPageHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	http.ServeFile(w, r, "test.html")
+}
+
 // Helper functions
 func findVideoFile(videoID string) string {
 	extensions := []string{".mp4", ".avi", ".mov", ".mkv", ".webm", ".flv"}
@@ -367,6 +372,10 @@ func setupRoutes() *httprouter.Router {
 	router.GET("/api/videos", listVideosHandler)
 	router.GET("/stream/:video-id", streamHandler)
 	router.POST("/upload/:video-id", uploadHandler)
+
+	// Serve test page
+	router.GET("/", testPageHandler)
+	router.GET("/test", testPageHandler)
 
 	return router
 }
