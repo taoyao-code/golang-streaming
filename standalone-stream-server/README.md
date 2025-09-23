@@ -1,99 +1,103 @@
-# Standalone Video Streaming Server
+# 独立视频流媒体服务器
 
-A high-performance, feature-rich video streaming server built with Go and GoFiber. This server provides efficient video streaming with advanced features like multi-directory management, range request support, configurable authentication, and comprehensive YAML configuration.
+基于 Go 和 GoFiber 构建的高性能、功能丰富的视频流媒体服务器。该服务器提供高效的视频流服务，具有多目录管理、范围请求支持、可配置身份验证和全面的 YAML 配置等高级功能。
 
-## ✨ Features
+## ✨ 功能特性
 
-### 🎬 Video Management
-- **Multi-directory video management**: Configure multiple video source directories
-- **Range request support**: Enables video seeking without full download
-- **Multiple video format support**: MP4, AVI, MOV, MKV, WebM, FLV, M4V, 3GP
-- **Video upload functionality**: Upload videos to specific directories
-- **Batch upload support**: Upload multiple videos at once
-- **Video search**: Search videos across all directories
+### 🎬 视频管理
 
-### 🚀 Performance & Scalability
-- **GoFiber framework**: High-performance web framework
-- **Connection limiting**: Prevents resource exhaustion
-- **Rate limiting**: Configurable request rate limiting
-- **Efficient streaming**: Optimized for video streaming with configurable chunk sizes
-- **Graceful shutdown**: Proper cleanup on server shutdown
+- **多目录视频管理**：配置多个视频源目录
+- **范围请求支持**：支持视频快进而无需完整下载
+- **多种视频格式支持**：MP4、AVI、MOV、MKV、WebM、FLV、M4V、3GP
+- **视频上传功能**：上传视频到指定目录
+- **批量上传支持**：一次上传多个视频
+- **视频搜索**：跨所有目录搜索视频
 
-### 🔧 Configuration & Management
-- **YAML configuration**: Comprehensive configuration using Viper
-- **Environment variable override**: Override any config with env vars
-- **Multiple configuration sources**: File, environment, defaults
-- **Hot-reload ready**: Structure supports configuration hot-reloading
+### 🚀 性能与扩展性
 
-### 🔒 Security & Monitoring
-- **CORS support**: Configurable cross-origin resource sharing
-- **Authentication options**: None, API key, or basic authentication
-- **Security headers**: Comprehensive security header configuration
-- **Health monitoring**: Multiple health check endpoints
-- **Structured logging**: JSON or text format logging
+- **GoFiber 框架**：高性能 Web 框架
+- **连接限制**：防止资源耗尽
+- **速率限制**：可配置的请求速率限制
+- **高效流媒体**：针对视频流优化，支持可配置的块大小
+- **优雅关闭**：服务器关闭时正确清理资源
 
-## 🏗️ Project Structure
+### 🔧 配置与管理
+
+- **YAML 配置**：使用 Viper 进行全面配置
+- **环境变量覆盖**：使用环境变量覆盖任何配置
+- **多配置源**：文件、环境变量、默认值
+- **热重载就绪**：结构支持配置热重载
+
+### 🔒 安全与监控
+
+- **CORS 支持**：可配置的跨域资源共享
+- **身份验证选项**：无验证、API 密钥或基本身份验证
+- **安全头**：全面的安全头配置
+- **健康监控**：多个健康检查端点
+- **结构化日志**：JSON 或文本格式日志
+
+## 🏗️ 项目结构
 
 ```
 standalone-stream-server/
 ├── cmd/
 │   └── server/
-│       └── main.go           # Application entry point
+│       └── main.go           # 应用程序入口点
 ├── internal/
 │   ├── config/
-│   │   └── config.go         # Viper YAML configuration management
+│   │   └── config.go         # Viper YAML 配置管理
 │   ├── handlers/
-│   │   ├── health.go         # Health check handlers
-│   │   ├── video.go          # Video streaming and listing handlers
-│   │   └── upload.go         # Video upload handlers
+│   │   ├── health.go         # 健康检查处理器
+│   │   ├── video.go          # 视频流和列表处理器
+│   │   └── upload.go         # 视频上传处理器
 │   ├── middleware/
-│   │   └── middleware.go     # CORS, rate limiting, auth middleware
+│   │   └── middleware.go     # CORS、速率限制、认证中间件
 │   ├── services/
-│   │   └── video.go          # Video management business logic
+│   │   └── video.go          # 视频管理业务逻辑
 │   └── models/
-│       └── config.go         # Configuration data structures
+│       └── config.go         # 配置数据结构
 ├── configs/
-│   └── config.yaml           # Default YAML configuration
-├── go.mod                    # Go module definition
-├── go.sum                    # Go module checksums
-└── README.md                 # This file
+│   └── config.yaml           # 默认 YAML 配置
+├── go.mod                    # Go 模块定义
+├── go.sum                    # Go 模块校验和
+└── README.md                 # 本文件
 ```
 
-## 🚀 Quick Start
+## 🚀 快速开始
 
-### Installation
+### 安装
 
 ```bash
-# Clone the repository
+# 克隆仓库
 git clone https://github.com/taoyao-code/golang-streaming.git
 cd golang-streaming/standalone-stream-server
 
-# Build the server
+# 构建服务器
 go build -o streaming-server ./cmd/server
 
-# Or install directly
+# 或直接安装
 go install ./cmd/server
 ```
 
-### Basic Usage
+### 基本使用
 
 ```bash
-# Run with default configuration
+# 使用默认配置运行
 ./streaming-server
 
-# Run with custom config file
+# 使用自定义配置文件运行
 ./streaming-server --config /path/to/config.yaml
 
-# Show example configuration
+# 显示示例配置
 ./streaming-server --show-config
 
-# Show version information
+# 显示版本信息
 ./streaming-server --version
 ```
 
-### Configuration
+### 配置
 
-Create a `config.yaml` file or modify `configs/config.yaml`:
+创建 `config.yaml` 文件或修改 `configs/config.yaml`：
 
 ```yaml
 server:
@@ -105,11 +109,11 @@ video:
   directories:
     - name: "movies"
       path: "./videos/movies"
-      description: "Movie collection"
+      description: "电影收藏"
       enabled: true
     - name: "series"
       path: "./videos/series"  
-      description: "TV series collection"
+      description: "电视剧收藏"
       enabled: true
   max_upload_size: 104857600  # 100MB
   
@@ -125,61 +129,69 @@ security:
     type: "none"  # none, api_key, basic
 ```
 
-## 📡 API Endpoints
+## 📡 API 端点
 
-### Health & Monitoring
-- `GET /health` - Comprehensive health check with server status
-- `GET /ping` - Simple ping endpoint
-- `GET /ready` - Readiness probe
-- `GET /live` - Liveness probe
-- `GET /api/info` - API information and capabilities
+### 健康与监控
 
-### Video Management
-- `GET /api/videos` - List all videos from all directories
-- `GET /api/videos/:directory` - List videos from specific directory
-- `GET /api/directories` - List all video directories with stats
-- `GET /api/search?q=term` - Search videos by name
-- `GET /api/video/:video-id` - Get detailed video information
+- `GET /health` - 包含服务器状态的全面健康检查
+- `GET /ping` - 简单的 ping 端点
+- `GET /ready` - 就绪探针
+- `GET /live` - 活性探针
+- `GET /api/info` - API 信息和功能
 
-### Video Streaming
-- `GET /stream/:video-id` - Stream video (supports range requests)
+### 视频管理
 
-### Video Upload
-- `POST /upload/:directory/:video-id` - Upload single video
-- `POST /upload/:directory/batch` - Upload multiple videos
+- `GET /api/videos` - 列出所有目录中的所有视频
+- `GET /api/videos/:directory` - 列出特定目录中的视频
+- `GET /api/directories` - 列出所有视频目录和统计信息
+- `GET /api/search?q=term` - 按名称搜索视频
+- `GET /api/video/:video-id` - 获取详细的视频信息
 
-## 🎥 Video Management
+### 视频流
 
-### Video ID Format
-Videos are identified using the format: `directory:filename` (without extension)
+- `GET /stream/:video-id` - 流式传输视频（支持范围请求）
 
-Examples:
+### 视频上传
+
+- `POST /upload/:directory/:video-id` - 上传单个视频
+- `POST /upload/:directory/batch` - 上传多个视频
+
+## 🎥 视频管理
+
+### 视频 ID 格式
+
+视频使用以下格式标识：`目录:文件名`（不包含扩展名）
+
+示例：
+
 - `movies:avatar`
 - `series:breaking-bad-s01e01`
 
-### Multi-Directory Support
-Configure multiple video directories for better organization:
+### 多目录支持
+
+配置多个视频目录以便更好地组织：
 
 ```yaml
 video:
   directories:
     - name: "movies"
       path: "/media/movies"
-      description: "Movie collection"
+      description: "电影收藏"
       enabled: true
     - name: "tv-shows"
       path: "/media/tv"
-      description: "TV series"
+      description: "电视剧"
       enabled: true
     - name: "documentaries"
       path: "/media/docs"
-      description: "Documentary films"
+      description: "纪录片"
       enabled: false
 ```
 
-## 🔒 Security Configuration
+## 🔒 安全配置
 
-### CORS Configuration
+### CORS 配置
+
 ```yaml
 security:
   cors:
@@ -189,9 +201,10 @@ security:
     allowed_headers: ["Content-Type", "Range", "Authorization"]
 ```
 
-### Authentication Options
+### 身份验证选项
 
-#### API Key Authentication
+#### API 密钥身份验证
+
 ```yaml
 security:
   auth:
@@ -200,9 +213,10 @@ security:
     api_key: "your-secret-api-key"
 ```
 
-Use with header: `X-API-Key: your-secret-api-key`
+使用请求头：`X-API-Key: your-secret-api-key`
 
-#### Basic Authentication
+#### 基本身份验证
+
 ```yaml
 security:
   auth:
@@ -213,7 +227,8 @@ security:
       password: "secret"
 ```
 
-### Rate Limiting
+### 速率限制
+
 ```yaml
 security:
   rate_limit:
@@ -223,9 +238,9 @@ security:
     cleanup_time: "5m"
 ```
 
-## 🌍 Environment Variables
+## 🌍 环境变量
 
-Override any configuration using environment variables with the `STREAMING_` prefix:
+使用 `STREAMING_` 前缀的环境变量覆盖任何配置：
 
 ```bash
 export STREAMING_SERVER_PORT=8080
@@ -234,21 +249,23 @@ export STREAMING_SECURITY_AUTH_ENABLED=true
 export STREAMING_SECURITY_AUTH_API_KEY=my-secret-key
 ```
 
-## 📊 Monitoring & Logging
+## 📊 监控与日志
 
-### Health Checks
+### 健康检查
+
 ```bash
-# Basic health check
+# 基本健康检查
 curl http://localhost:9000/health
 
-# Readiness probe (for Kubernetes)
+# 就绪探针（用于 Kubernetes）
 curl http://localhost:9000/ready
 
-# Liveness probe (for Kubernetes)
+# 活性探针（用于 Kubernetes）
 curl http://localhost:9000/live
 ```
 
-### Logging Configuration
+### 日志配置
+
 ```yaml
 logging:
   level: "info"      # debug, info, warn, error
@@ -258,9 +275,10 @@ logging:
   error_log: true
 ```
 
-## 🔧 Advanced Configuration
+## 🔧 高级配置
 
-### Streaming Settings
+### 流媒体设置
+
 ```yaml
 video:
   streaming:
@@ -271,7 +289,8 @@ video:
     connection_timeout: "60s"
 ```
 
-### Server Timeouts
+### 服务器超时
+
 ```yaml
 server:
   read_timeout: "30s"
@@ -279,7 +298,7 @@ server:
   graceful_timeout: "30s"
 ```
 
-## 🐳 Docker Deployment
+## 🐳 Docker 部署
 
 ```dockerfile
 FROM golang:1.21-alpine AS builder
@@ -296,12 +315,13 @@ EXPOSE 9000
 CMD ["./streaming-server", "--config", "configs/config.yaml"]
 ```
 
-## 🚀 Production Deployment
+## 🚀 生产部署
 
-### Systemd Service
+### Systemd 服务
+
 ```ini
 [Unit]
-Description=Standalone Video Streaming Server
+Description=独立视频流媒体服务器
 After=network.target
 
 [Service]
@@ -316,51 +336,54 @@ RestartSec=10
 WantedBy=multi-user.target
 ```
 
-### Performance Tuning
-1. **Use SSD storage** for video files
-2. **Adjust max_connections** based on your bandwidth
-3. **Configure chunk_size** for optimal streaming
-4. **Enable caching** with appropriate cache headers
-5. **Use a reverse proxy** (nginx, traefik) for SSL termination
+### 性能调优
 
-## 📈 Performance Considerations
+1. **使用 SSD 存储**：用于视频文件
+2. **调整 max_connections**：根据您的带宽调整
+3. **配置 chunk_size**：优化流媒体性能
+4. **启用缓存**：使用适当的缓存头
+5. **使用反向代理**：（nginx、traefik）进行 SSL 终止
 
-- **Connection Limiting**: Prevents server overload
-- **Range Request Support**: Efficient video seeking
-- **Streaming Optimization**: Configurable chunk sizes
-- **Memory Management**: Efficient file streaming without loading entire files
-- **Concurrent Handling**: GoFiber's high-performance request handling
+## 📈 性能考虑
 
-## 🆚 Migration from v1.x
+- **连接限制**：防止服务器过载
+- **范围请求支持**：高效的视频快进
+- **流媒体优化**：可配置的块大小
+- **内存管理**：高效的文件流，无需加载整个文件
+- **并发处理**：GoFiber 的高性能请求处理
 
-This v2.0 represents a complete rewrite with significant improvements:
+## 🆚 从 v1.x 迁移
 
-### Key Changes
-- **Framework**: Migrated from httprouter to GoFiber
-- **Configuration**: JSON → YAML with Viper
-- **Structure**: Monolithic → Modular architecture
-- **Features**: Added multi-directory support, advanced auth, rate limiting
+v2.0 版本代表了完全重写，具有显著改进：
 
-### Migration Steps
-1. **Update configuration**: Convert JSON config to YAML format
-2. **Update API calls**: Some endpoint paths have changed
-3. **Review video organization**: Take advantage of multi-directory support
-4. **Configure security**: Set up authentication and rate limiting as needed
+### 主要变化
 
-## 🤝 Contributing
+- **框架**：从 httprouter 迁移到 GoFiber
+- **配置**：JSON → YAML，使用 Viper
+- **结构**：单体 → 模块化架构
+- **功能**：增加了多目录支持、高级认证、速率限制
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
+### 迁移步骤
 
-## 📄 License
+1. **更新配置**：将 JSON 配置转换为 YAML 格式
+2. **更新 API 调用**：某些端点路径已更改
+3. **重新组织视频**：利用多目录支持
+4. **配置安全性**：根据需要设置身份验证和速率限制
 
-This project is part of the golang-streaming repository and follows the same license terms.
+## 🤝 贡献
 
-## 🔗 Related Projects
+1. Fork 仓库
+2. 创建功能分支
+3. 进行更改
+4. 如适用，添加测试
+5. 提交拉取请求
 
-- [golang-streaming](https://github.com/taoyao-code/golang-streaming) - Main repository
-- [video_server](../video_server) - Alternative video server implementation
-- [webserver](../webserver) - Web interface for video management
+## 📄 许可证
+
+此项目是 golang-streaming 仓库的一部分，遵循相同的许可条款。
+
+## 🔗 相关项目
+
+- [golang-streaming](https://github.com/taoyao-code/golang-streaming) - 主仓库
+- [video_server](../video_server) - 替代视频服务器实现
+- [webserver](../webserver) - 视频管理 Web 界面

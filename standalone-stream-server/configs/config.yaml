@@ -3,55 +3,56 @@ server:
   host: "0.0.0.0"
   read_timeout: "30s"
   write_timeout: "30s"
-  max_connections: 100
+  max_connections: 300 # 连接数 最大300
   graceful_timeout: "30s"
 
 video:
   directories:
     - name: "movies"
       path: "./videos/movies"
-      description: "Movie collection"
+      description: "Movie collection" # 电影集合
       enabled: true
     - name: "series"
       path: "./videos/series"
-      description: "TV series collection"
+      description: "TV series collection" # 电视剧集合
       enabled: true
     - name: "documentaries"
       path: "./videos/docs"
-      description: "Documentary collection"
+      description: "Documentary collection" # 纪录片集合
       enabled: false
-  max_upload_size: 104857600  # 100MB in bytes
-  supported_formats: [".mp4", ".avi", ".mov", ".mkv", ".webm", ".flv", ".m4v", ".3gp"]
+  max_upload_size: 1073741824 # 1GB in bytes 最大1GB
+  supported_formats:
+    [".mp4", ".avi", ".mov", ".mkv", ".webm", ".flv", ".m4v", ".3gp"]
   streaming:
-    cache_control: "public, max-age=3600"
-    buffer_size: 32768  # 32KB
-    range_support: true
-    chunk_size: 1048576  # 1MB
-    connection_timeout: "60s"
+    cache_control: "public, max-age=3600" # 缓存控制
+    buffer_size: 32768 # 32KB 缓冲区大小
+    range_support: true # 范围支持
+    chunk_size: 3145728 # 3MB 分块大小
+    connection_timeout: "60s" # 连接超时
 
 logging:
-  level: "info"  # debug, info, warn, error
-  format: "json"  # json, text
-  output: "stdout"  # stdout, stderr, file
-  access_log: true
-  error_log: true
+  level: "info" # debug, info, warn, error 日志级别
+  format: "json" # json, text
+  output: "stdout" # stdout, stderr, file
+  access_log: true # 访问日志
+  error_log: true # 错误日志
 
 security:
   cors:
     enabled: true
-    allowed_origins: ["*"]
+    allowed_origins: ["*"] # 允许的源
     allowed_methods: ["GET", "POST", "OPTIONS"]
     allowed_headers: ["Content-Type", "Range", "Authorization"]
-  
+
   rate_limit:
     enabled: true
     requests_per_minute: 60
     burst_size: 10
     cleanup_time: "5m"
-  
+
   auth:
     enabled: false
-    type: "none"  # none, api_key, basic
+    type: "none" # none, api_key, basic
     api_key: ""
     basic_auth:
       username: ""

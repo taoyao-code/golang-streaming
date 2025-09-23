@@ -4,7 +4,6 @@ go 1.21
 
 require (
 	github.com/gofiber/fiber/v2 v2.52.0
-	github.com/julienschmidt/httprouter v1.3.0
 	github.com/spf13/viper v1.18.2
 )
 
