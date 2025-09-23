@@ -80,7 +80,7 @@ func (vs *VideoService) ListAllVideos() ([]VideoInfo, error) {
 	return allVideos, nil
 }
 
-// ListVideosInDirectory 返回特定目录中的视频
+// ListVideosInDirectory 返回特定目录中的视频（支持递归扫描子目录）
 func (vs *VideoService) ListVideosInDirectory(directoryName string) ([]VideoInfo, error) {
 	dir := vs.findDirectory(directoryName)
 	if dir == nil {
@@ -91,20 +91,55 @@ func (vs *VideoService) ListVideosInDirectory(directoryName string) ([]VideoInfo
 		return nil, fmt.Errorf("directory is disabled: %s", directoryName)
 	}
 
-	files, err := os.ReadDir(dir.Path)
+	return vs.scanDirectoryRecursive(dir.Path, directoryName, "", 0)
+}
+
+// scanDirectoryRecursive 递归扫描目录以查找视频文件
+func (vs *VideoService) scanDirectoryRecursive(basePath, dirName, currentPath string, depth int) ([]VideoInfo, error) {
+	// 限制递归深度，防止无限递归或性能问题
+	const maxDepth = 10
+	if depth > maxDepth {
+		return nil, fmt.Errorf("directory depth exceeds maximum allowed depth (%d)", maxDepth)
+	}
+
+	fullPath := filepath.Join(basePath, currentPath)
+
+	// 检查是否为符号链接，避免循环引用
+	if info, err := os.Lstat(fullPath); err == nil && info.Mode()&os.ModeSymlink != 0 {
+		// 对于符号链接，我们跳过以避免潜在的循环引用
+		return []VideoInfo{}, nil
+	}
+
+	files, err := os.ReadDir(fullPath)
 	if err != nil {
-		return nil, fmt.Errorf("error reading directory %s: %w", dir.Path, err)
+		// 如果无法读取目录（权限问题等），返回空列表而不是错误
+		// 但记录调试信息以便排查问题
+		// fmt.Printf("Warning: Unable to read directory %s: %v\n", fullPath, err)
+		return []VideoInfo{}, nil
 	}
 
 	var videos []VideoInfo
 	for _, file := range files {
-		if file.IsDir() {
+		fileName := file.Name()
+		// 跳过隐藏文件和特殊目录
+		if strings.HasPrefix(fileName, ".") {
 			continue
 		}
 
-		name := file.Name()
-		ext := strings.ToLower(filepath.Ext(name))
+		filePath := filepath.Join(currentPath, fileName)
+		fullFilePath := filepath.Join(basePath, filePath)
 
+		if file.IsDir() {
+			// 递归处理子目录
+			subVideos, err := vs.scanDirectoryRecursive(basePath, dirName, filePath, depth+1)
+			if err == nil {
+				videos = append(videos, subVideos...)
+			}
+			continue
+		}
+
+		// 处理文件
+		ext := strings.ToLower(filepath.Ext(fileName))
 		if !vs.isVideoFile(ext) {
 			continue
 		}
@@ -114,18 +149,25 @@ func (vs *VideoService) ListVideosInDirectory(directoryName string) ([]VideoInfo
 			continue
 		}
 
+		// 生成相对路径（用于ID和URL）
+		relativeVideoPath := strings.TrimSuffix(filePath, ext)
+		if currentPath == "" {
+			// 根目录下的文件，保持原有格式兼容性
+			relativeVideoPath = strings.TrimSuffix(fileName, ext)
+		}
+
 		video := VideoInfo{
-			ID:          vs.generateVideoID(directoryName, strings.TrimSuffix(name, ext)),
-			Name:        name,
+			ID:          vs.generateVideoID(dirName, relativeVideoPath),
+			Name:        fileName,
 			Size:        info.Size(),
 			Modified:    info.ModTime().Unix(),
 			ContentType: vs.getContentType(ext),
-			Directory:   directoryName,
-			Path:        filepath.Join(dir.Path, name),
+			Directory:   dirName,
+			Path:        fullFilePath,
 			Extension:   ext,
-			StreamURL:   fmt.Sprintf("/stream/%s/%s", directoryName, strings.TrimSuffix(name, ext)),
-			Available:   true, // 文件存在且可读
-			Metadata:    vs.extractVideoMetadata(filepath.Join(dir.Path, name), ext),
+			StreamURL:   vs.generateStreamURL(dirName, relativeVideoPath),
+			Available:   true,
+			Metadata:    vs.extractVideoMetadata(fullFilePath, ext),
 		}
 
 		videos = append(videos, video)
@@ -164,9 +206,9 @@ func (vs *VideoService) GetDirectoriesInfo() []DirectoryInfo {
 	return directories
 }
 
-// FindVideoByID 通过 ID 查找视频
+// FindVideoByID 通过 ID 查找视频（支持多层级路径）
 func (vs *VideoService) FindVideoByID(videoID string) (*VideoInfo, error) {
-	// Parse video ID to extract directory and filename
+	// Parse video ID to extract directory and relative path
 	parts := strings.SplitN(videoID, ":", 2)
 	if len(parts) != 2 {
 		// 回退: 在所有目录中搜索
@@ -174,14 +216,15 @@ func (vs *VideoService) FindVideoByID(videoID string) (*VideoInfo, error) {
 	}
 
 	directoryName := parts[0]
-	filename := parts[1]
+	relativePath := parts[1]
 
 	dir := vs.findDirectory(directoryName)
 	if dir == nil || !dir.Enabled {
 		return nil, fmt.Errorf("directory not found or disabled: %s", directoryName)
 	}
 
-	videoPath := vs.findVideoFile(dir.Path, filename)
+	// 尝试直接查找文件（支持多层级路径）
+	videoPath := vs.findVideoFileByRelativePath(dir.Path, relativePath)
 	if videoPath == "" {
 		return nil, fmt.Errorf("video not found: %s", videoID)
 	}
@@ -201,7 +244,7 @@ func (vs *VideoService) FindVideoByID(videoID string) (*VideoInfo, error) {
 		Directory:   directoryName,
 		Path:        videoPath,
 		Extension:   ext,
-		StreamURL:   fmt.Sprintf("/stream/%s/%s", directoryName, filename),
+		StreamURL:   vs.generateStreamURL(directoryName, relativePath),
 		Available:   true,
 		Metadata:    vs.extractVideoMetadata(videoPath, ext),
 	}
@@ -283,6 +326,17 @@ func (vs *VideoService) findVideoFile(dirPath, videoID string) string {
 	return ""
 }
 
+// findVideoFileByRelativePath 根据相对路径查找视频文件（支持多层级）
+func (vs *VideoService) findVideoFileByRelativePath(basePath, relativePath string) string {
+	for _, ext := range vs.config.Video.SupportedFormats {
+		fullPath := filepath.Join(basePath, relativePath+ext)
+		if _, err := os.Stat(fullPath); err == nil {
+			return fullPath
+		}
+	}
+	return ""
+}
+
 func (vs *VideoService) isVideoFile(ext string) bool {
 	for _, supportedExt := range vs.config.Video.SupportedFormats {
 		if ext == supportedExt {
@@ -309,8 +363,15 @@ func (vs *VideoService) getContentType(ext string) string {
 	return "video/mp4" // default
 }
 
-func (vs *VideoService) generateVideoID(directory, filename string) string {
-	return fmt.Sprintf("%s:%s", directory, filename)
+func (vs *VideoService) generateVideoID(directory, relativePath string) string {
+	return fmt.Sprintf("%s:%s", directory, relativePath)
+}
+
+// generateStreamURL 生成流媒体URL，支持多层级路径
+func (vs *VideoService) generateStreamURL(directory, relativePath string) string {
+	// 对路径进行URL编码以处理特殊字符和路径分隔符
+	encodedPath := strings.ReplaceAll(relativePath, "/", "%2F")
+	return fmt.Sprintf("/stream/%s/%s", directory, encodedPath)
 }
 
 // GetStats 返回整体视频统计信息

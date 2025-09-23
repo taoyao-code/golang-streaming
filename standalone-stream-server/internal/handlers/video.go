@@ -325,7 +325,7 @@ func (vh *VideoHandler) SearchVideos(c *fiber.Ctx) error {
 	return c.JSON(response)
 }
 
-// StreamVideoByDirectory 从指定目录流式传输视频文件
+// StreamVideoByDirectory 从指定目录流式传输视频文件（支持多层级路径）
 func (vh *VideoHandler) StreamVideoByDirectory(c *fiber.Ctx) error {
 	directory := c.Params("directory")
 	videoID := c.Params("videoid")
@@ -336,8 +336,11 @@ func (vh *VideoHandler) StreamVideoByDirectory(c *fiber.Ctx) error {
 		})
 	}
 
+	// URL解码视频ID以支持多层级路径（处理 %2F 等编码字符）
+	decodedVideoID := strings.ReplaceAll(videoID, "%2F", "/")
+
 	// Construct the full video ID
-	fullVideoID := directory + ":" + videoID
+	fullVideoID := directory + ":" + decodedVideoID
 
 	// 查找视频
 	video, err := vh.videoService.FindVideoByID(fullVideoID)
@@ -345,7 +348,7 @@ func (vh *VideoHandler) StreamVideoByDirectory(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 			"error":     "Video not found",
 			"directory": directory,
-			"video_id":  videoID,
+			"video_id":  decodedVideoID,
 			"details":   err.Error(),
 		})
 	}
