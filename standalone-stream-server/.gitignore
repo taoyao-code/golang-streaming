@@ -1,0 +1,45 @@
+# .gitignore for Standalone Stream Server
+
+# Binaries
+streaming-server
+streaming-server.exe
+
+# Logs
+logs/
+*.log
+
+# Video files (optional - comment out if you want to track videos)
+videos/
+*.mp4
+*.avi
+*.mov
+*.mkv
+*.webm
+*.flv
+
+# Config files (optional - comment out if you want to track configs)
+# config.json
+
+# System service files
+*.service
+
+# Docker files (optional - comment out if you want to track Docker files)
+# Dockerfile
+# docker-compose.yml
+# .dockerignore
+
+# Go build cache
+go.sum
+
+# IDE files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Test files
+test_upload.*
