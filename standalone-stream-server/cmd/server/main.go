@@ -144,7 +144,7 @@ func setupRoutes(app *fiber.App, health *handlers.HealthHandler, video *handlers
 	}
 
 	// 视频流媒体端点（顺序很重要 - 更具体的路由在前）
-	app.Get("/stream/:directory/:videoid", video.StreamVideoByDirectory)
+	app.Get("/stream/:directory/*", video.StreamVideoByDirectory)
 	app.Get("/stream/:videoid", video.StreamVideo)
 
 	// 上传端点
@@ -183,7 +183,7 @@ func setupRoutes(app *fiber.App, health *handlers.HealthHandler, video *handlers
 				"GET /api/video/:video-id",
 				"GET /api/video/:video-id/validate",
 				"GET /stream/:video-id",
-				"GET /stream/:directory/:video-id",
+				"GET /stream/:directory/* (supports multi-level paths)",
 				"POST /upload/:directory/:video-id",
 				"POST /upload/:directory/batch",
 				"GET /player",
@@ -220,6 +220,7 @@ func logStartupInfo(cfg *models.Config, addr string) {
 	log.Printf("   - GET  /api/videos/:directory       - List videos in directory")
 	log.Printf("   - GET  /api/directories             - List video directories")
 	log.Printf("   - GET  /api/search?q=term           - Search videos")
+	log.Printf("   - GET  /stream/:directory/*         - Stream video from directory (supports multi-level paths)")
 	log.Printf("   - GET  /stream/:video-id            - Stream video (range requests supported)")
 	log.Printf("   - POST /upload/:directory/:video-id - Upload video")
 	log.Printf("   - POST /upload/:directory/batch     - Upload multiple videos")

@@ -369,9 +369,8 @@ func (vs *VideoService) generateVideoID(directory, relativePath string) string {
 
 // generateStreamURL 生成流媒体URL，支持多层级路径
 func (vs *VideoService) generateStreamURL(directory, relativePath string) string {
-	// 对路径进行URL编码以处理特殊字符和路径分隔符
-	encodedPath := strings.ReplaceAll(relativePath, "/", "%2F")
-	return fmt.Sprintf("/stream/%s/%s", directory, encodedPath)
+	// 现在直接使用原始路径，不需要编码，因为路由支持通配符
+	return fmt.Sprintf("/stream/%s/%s", directory, relativePath)
 }
 
 // GetStats 返回整体视频统计信息
