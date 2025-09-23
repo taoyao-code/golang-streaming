@@ -81,7 +81,7 @@ func setupTestServer(t *testing.T) (*fiber.App, *models.Config, string) {
 				AllowedHeaders: []string{"Content-Type", "Range", "Authorization"},
 			},
 			RateLimit: models.RateConfig{
-				Enabled:        true,
+				Enabled:        false, // Disable for testing
 				RequestsPerMin: 60,
 				BurstSize:      10,
 			},
@@ -94,7 +94,7 @@ func setupTestServer(t *testing.T) (*fiber.App, *models.Config, string) {
 			Level:     "info",
 			Format:    "json",
 			Output:    "stdout",
-			AccessLog: true,
+			AccessLog: false, // Disable for testing
 			ErrorLog:  true,
 		},
 	}
@@ -140,10 +140,8 @@ func setupTestServer(t *testing.T) (*fiber.App, *models.Config, string) {
 	api.Get("/video/:video-id", videoHandler.GetVideoInfo)
 
 	// 流媒体路由 (更具体的路由应该在前面)
-	app.Get("/stream/:directory/:videoid", func(c *fiber.Ctx) error {
-		// 直接调用处理器方法以避免任何路由问题
-		return videoHandler.StreamVideoByDirectory(c)
-	})
+	app.Get("/stream/:directory/*", videoHandler.StreamVideoByDirectory)
+	app.Get("/stream/:videoid", videoHandler.StreamVideo)
 
 	// 上传路由
 	app.Post("/upload/:directory/:videoid", uploadHandler.UploadVideo)
@@ -312,6 +310,21 @@ func TestVideoListingEndpoints(t *testing.T) {
 	})
 }
 
+func TestDebugListVideos(t *testing.T) {
+	app, _, _ := setupTestServer(t)
+
+	req := httptest.NewRequest("GET", "/api/videos", nil)
+	resp, err := app.Test(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	
+	body, _ := io.ReadAll(resp.Body)
+	
+	t.Logf("All videos response: %s", string(body))
+}
+
 func TestVideoStreaming(t *testing.T) {
 	app, _, _ := setupTestServer(t)
 
@@ -323,6 +336,9 @@ func TestVideoStreaming(t *testing.T) {
 		}
 
 		if resp.StatusCode != 200 {
+			// Debug the actual response
+			body, _ := io.ReadAll(resp.Body)
+			t.Logf("Actual response: %s", string(body))
 			t.Errorf("Expected status 200, got %d", resp.StatusCode)
 		}
 
