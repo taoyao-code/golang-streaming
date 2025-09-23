@@ -32,7 +32,20 @@ type VideoInfo struct {
 	Directory   string                 `json:"directory"`
 	Path        string                 `json:"path"`
 	Extension   string                 `json:"extension"`
-	Metadata    map[string]interface{} `json:"metadata,omitempty"`
+	Metadata    VideoMetadata          `json:"metadata,omitempty"`
+	StreamURL   string                 `json:"stream_url"`
+	Available   bool                   `json:"available"`
+}
+
+// VideoMetadata holds additional video information
+type VideoMetadata struct {
+	Duration    float64 `json:"duration,omitempty"`    // Duration in seconds
+	Bitrate     int64   `json:"bitrate,omitempty"`     // Bitrate in bps
+	Resolution  string  `json:"resolution,omitempty"`  // e.g., "1920x1080"
+	Codec       string  `json:"codec,omitempty"`       // Video codec
+	AudioCodec  string  `json:"audio_codec,omitempty"` // Audio codec
+	FrameRate   float64 `json:"frame_rate,omitempty"`  // FPS
+	Format      string  `json:"format,omitempty"`      // Container format
 }
 
 // DirectoryInfo represents directory information
@@ -110,6 +123,9 @@ func (vs *VideoService) ListVideosInDirectory(directoryName string) ([]VideoInfo
 			Directory:   directoryName,
 			Path:        filepath.Join(dir.Path, name),
 			Extension:   ext,
+			StreamURL:   fmt.Sprintf("/stream/%s/%s", directoryName, strings.TrimSuffix(name, ext)),
+			Available:   true, // File exists and is readable
+			Metadata:    vs.extractVideoMetadata(filepath.Join(dir.Path, name), ext),
 		}
 
 		videos = append(videos, video)
@@ -185,6 +201,9 @@ func (vs *VideoService) FindVideoByID(videoID string) (*VideoInfo, error) {
 		Directory:   directoryName,
 		Path:        videoPath,
 		Extension:   ext,
+		StreamURL:   fmt.Sprintf("/stream/%s/%s", directoryName, filename),
+		Available:   true,
+		Metadata:    vs.extractVideoMetadata(videoPath, ext),
 	}
 
 	return video, nil
@@ -326,4 +345,71 @@ func (vs *VideoService) GetStats() map[string]interface{} {
 		"max_upload_size":   vs.config.Video.MaxUploadSize,
 		"last_updated":      time.Now().Unix(),
 	}
+}
+
+// extractVideoMetadata extracts basic metadata from video files
+func (vs *VideoService) extractVideoMetadata(filePath, ext string) VideoMetadata {
+	metadata := VideoMetadata{
+		Format: strings.TrimPrefix(ext, "."),
+	}
+
+	// For now, we'll extract basic file-based metadata
+	// In a production system, you'd want to use ffprobe or similar
+	if stat, err := os.Stat(filePath); err == nil {
+		// Estimate duration based on file size and codec (very rough estimate)
+		switch ext {
+		case ".mp4", ".mov", ".m4v":
+			metadata.Codec = "H.264"
+			metadata.AudioCodec = "AAC"
+			// Rough estimate: ~1MB per minute for standard quality
+			if stat.Size() > 0 {
+				metadata.Duration = float64(stat.Size()) / (1024 * 1024) * 60 // Very rough estimate
+			}
+		case ".webm":
+			metadata.Codec = "VP8/VP9"
+			metadata.AudioCodec = "Vorbis/Opus"
+		case ".mkv":
+			metadata.Codec = "Various"
+			metadata.AudioCodec = "Various"
+		case ".avi":
+			metadata.Codec = "Various"
+			metadata.AudioCodec = "Various"
+		}
+
+		// Set common defaults
+		if metadata.Duration > 0 && metadata.Duration < 1 {
+			metadata.Duration = 1 // Minimum 1 second
+		}
+		if metadata.Bitrate == 0 && metadata.Duration > 0 {
+			metadata.Bitrate = int64(float64(stat.Size()) * 8 / metadata.Duration) // bits per second
+		}
+	}
+
+	return metadata
+}
+
+// ValidateVideoFile checks if a video file is properly accessible and valid
+func (vs *VideoService) ValidateVideoFile(filePath string) error {
+	// Check if file exists and is readable
+	if _, err := os.Stat(filePath); err != nil {
+		return fmt.Errorf("file not accessible: %w", err)
+	}
+
+	// Check file extension
+	ext := strings.ToLower(filepath.Ext(filePath))
+	if !vs.isVideoFile(ext) {
+		return fmt.Errorf("unsupported video format: %s", ext)
+	}
+
+	// Check file size
+	if stat, err := os.Stat(filePath); err == nil {
+		if stat.Size() == 0 {
+			return fmt.Errorf("video file is empty")
+		}
+		if stat.Size() > vs.config.Video.MaxUploadSize {
+			return fmt.Errorf("video file exceeds size limit: %d > %d", stat.Size(), vs.config.Video.MaxUploadSize)
+		}
+	}
+
+	return nil
 }

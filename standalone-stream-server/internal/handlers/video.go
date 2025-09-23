@@ -132,6 +132,12 @@ func (vh *VideoHandler) StreamVideo(c *fiber.Ctx) error {
 		})
 	}
 
+	return vh.streamVideoFile(c, video)
+}
+
+// streamVideoFile handles the actual streaming logic for both streaming methods
+func (vh *VideoHandler) streamVideoFile(c *fiber.Ctx, video *services.VideoInfo) error {
+
 	// Open the video file
 	file, err := os.Open(video.Path)
 	if err != nil {
@@ -314,4 +320,69 @@ func (vh *VideoHandler) SearchVideos(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(response)
+}
+
+// StreamVideoByDirectory streams a video file from a specific directory
+func (vh *VideoHandler) StreamVideoByDirectory(c *fiber.Ctx) error {
+	directory := c.Params("directory")
+	videoID := c.Params("video-id")
+	
+	if directory == "" || videoID == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Both directory and video ID parameters are required",
+		})
+	}
+
+	// Construct the full video ID
+	fullVideoID := directory + ":" + videoID
+	
+	// Find the video
+	video, err := vh.videoService.FindVideoByID(fullVideoID)
+	if err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"error": "Video not found",
+			"directory": directory,
+			"video_id": videoID,
+			"details": err.Error(),
+		})
+	}
+
+	return vh.streamVideoFile(c, video)
+}
+
+// ValidateVideo validates if a video file is accessible and properly formatted
+func (vh *VideoHandler) ValidateVideo(c *fiber.Ctx) error {
+	videoID := c.Params("video-id")
+	if videoID == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Video ID is required",
+		})
+	}
+
+	// Find the video
+	video, err := vh.videoService.FindVideoByID(videoID)
+	if err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"error": "Video not found",
+			"video_id": videoID,
+			"details": err.Error(),
+		})
+	}
+
+	// Validate the video file
+	if err := vh.videoService.ValidateVideoFile(video.Path); err != nil {
+		return c.Status(fiber.StatusUnprocessableEntity).JSON(fiber.Map{
+			"error": "Video validation failed",
+			"video_id": videoID,
+			"details": err.Error(),
+			"valid": false,
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"video_id": videoID,
+		"valid": true,
+		"message": "Video file is valid and ready for streaming",
+		"video": video,
+	})
 }

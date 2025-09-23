@@ -140,9 +140,11 @@ func setupRoutes(app *fiber.App, health *handlers.HealthHandler, video *handlers
 		
 		// Video information
 		api.Get("/video/:video-id", video.GetVideoInfo)
+		api.Get("/video/:video-id/validate", video.ValidateVideo)
 	}
 
-	// Video streaming endpoints
+	// Video streaming endpoints (order matters - more specific routes first)
+	app.Get("/stream/:directory/:video-id", video.StreamVideoByDirectory)
 	app.Get("/stream/:video-id", video.StreamVideo)
 
 	// Upload endpoints
@@ -157,6 +159,11 @@ func setupRoutes(app *fiber.App, health *handlers.HealthHandler, video *handlers
 		return c.Redirect("/api/info")
 	})
 
+	// Serve video test player
+	app.Get("/player", func(c *fiber.Ctx) error {
+		return c.SendFile("./web/player.html")
+	})
+
 	// Catch-all for undefined routes
 	app.All("*", func(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
@@ -165,11 +172,21 @@ func setupRoutes(app *fiber.App, health *handlers.HealthHandler, video *handlers
 			"method": c.Method(),
 			"available_endpoints": []string{
 				"GET /health",
+				"GET /ping",
+				"GET /ready", 
+				"GET /live",
 				"GET /api/info", 
 				"GET /api/videos",
+				"GET /api/videos/:directory",
 				"GET /api/directories",
+				"GET /api/search?q=term",
+				"GET /api/video/:video-id",
+				"GET /api/video/:video-id/validate",
 				"GET /stream/:video-id",
+				"GET /stream/:directory/:video-id",
 				"POST /upload/:directory/:video-id",
+				"POST /upload/:directory/batch",
+				"GET /player",
 			},
 		})
 	})
