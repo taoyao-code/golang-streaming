@@ -6,7 +6,6 @@ import (
 	"strconv"
 	"strings"
 
-	"standalone-stream-server/internal/middleware"
 	"standalone-stream-server/internal/models"
 	"standalone-stream-server/internal/services"
 
@@ -15,23 +14,15 @@ import (
 
 // VideoHandler 处理视频相关请求
 type VideoHandler struct {
-	config             *models.Config
-	videoService       *services.VideoService
-	streamingFlowController *middleware.StreamingFlowController
+	config       *models.Config
+	videoService *services.VideoService
 }
 
 // NewVideoHandler 创建新的视频处理器
 func NewVideoHandler(config *models.Config, videoService *services.VideoService) *VideoHandler {
-	// Create streaming flow controller based on config
-	streamingFlowController := middleware.NewStreamingFlowController(
-		config.Server.MaxConns,    // max connections
-		config.Server.MaxConns/4,  // tokens per second (1/4 of max connections)
-	)
-	
 	return &VideoHandler{
-		config:                  config,
-		videoService:            videoService,
-		streamingFlowController: streamingFlowController,
+		config:       config,
+		videoService: videoService,
 	}
 }
 
@@ -146,25 +137,6 @@ func (vh *VideoHandler) StreamVideo(c *fiber.Ctx) error {
 
 // streamVideoFile handles the actual streaming logic for both streaming methods
 func (vh *VideoHandler) streamVideoFile(c *fiber.Ctx, video *services.VideoInfo) error {
-	// Apply flow control for streaming requests
-	allowed, reason := vh.streamingFlowController.CheckAccess()
-	if !allowed {
-		errorMsg := "Server busy"
-		if reason == "rate_limited" {
-			errorMsg = "Rate limit exceeded"
-		} else if reason == "connection_limited" {
-			errorMsg = "Too many concurrent connections"
-		}
-		
-		return c.Status(fiber.StatusTooManyRequests).JSON(fiber.Map{
-			"error":  errorMsg,
-			"reason": reason,
-		})
-	}
-	
-	// Ensure connection is released when streaming completes
-	defer vh.streamingFlowController.ReleaseConnection()
-	
 	// 首先获取文件信息
 	stat, err := os.Stat(video.Path)
 	if err != nil {
@@ -416,15 +388,5 @@ func (vh *VideoHandler) ValidateVideo(c *fiber.Ctx) error {
 		"valid":    true,
 		"message":  "Video file is valid and ready for streaming",
 		"video":    video,
-	})
-}
-
-// GetFlowControlStats returns flow control statistics
-func (vh *VideoHandler) GetFlowControlStats(c *fiber.Ctx) error {
-	stats := vh.streamingFlowController.GetDetailedStats()
-	
-	return c.JSON(fiber.Map{
-		"flow_control": stats,
-		"timestamp":    c.Context().Time().Unix(),
 	})
 }
