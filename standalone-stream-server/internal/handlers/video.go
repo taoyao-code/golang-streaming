@@ -428,3 +428,48 @@ func (vh *VideoHandler) GetFlowControlStats(c *fiber.Ctx) error {
 		"timestamp":    c.Context().Time().Unix(),
 	})
 }
+
+// GetVideoThumbnail generates and returns a video thumbnail
+func (vh *VideoHandler) GetVideoThumbnail(c *fiber.Ctx) error {
+	videoID := c.Params("videoid")
+	if videoID == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Video ID is required",
+		})
+	}
+
+	// Find the video
+	video, err := vh.videoService.FindVideoByID(videoID)
+	if err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"error":    "Video not found",
+			"video_id": videoID,
+		})
+	}
+
+	// Generate thumbnail path
+	thumbnailDir := "data/thumbnails"
+	os.MkdirAll(thumbnailDir, 0755) // Ensure directory exists
+	thumbnailPath := fmt.Sprintf("%s/%s.jpg", thumbnailDir, videoID)
+
+	// Check if thumbnail already exists
+	if _, err := os.Stat(thumbnailPath); os.IsNotExist(err) {
+		// Generate thumbnail at 10% into the video
+		timeOffset := 0.0
+		if video.Metadata.Duration > 10 {
+			timeOffset = video.Metadata.Duration * 0.1
+		}
+
+		// Try to generate thumbnail using the metadata extractor
+		metadataExtractor := vh.videoService.GetMetadataExtractor()
+		if err := metadataExtractor.GenerateThumbnail(video.Path, thumbnailPath, timeOffset); err != nil {
+			return c.Status(fiber.StatusServiceUnavailable).JSON(fiber.Map{
+				"error":   "Thumbnail generation failed",
+				"details": "FFmpeg not available or video processing failed",
+			})
+		}
+	}
+
+	// Serve the thumbnail file
+	return c.SendFile(thumbnailPath)
+}

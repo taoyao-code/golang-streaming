@@ -12,13 +12,15 @@ import (
 
 // VideoService 处理视频相关操作
 type VideoService struct {
-	config *models.Config
+	config            *models.Config
+	metadataExtractor *VideoMetadataExtractor
 }
 
 // NewVideoService 创建新的视频服务
 func NewVideoService(config *models.Config) *VideoService {
 	return &VideoService{
-		config: config,
+		config:            config,
+		metadataExtractor: NewVideoMetadataExtractor(),
 	}
 }
 
@@ -39,13 +41,20 @@ type VideoInfo struct {
 
 // VideoMetadata 保存额外的视频信息
 type VideoMetadata struct {
-	Duration   float64 `json:"duration,omitempty"`    // Duration in seconds
-	Bitrate    int64   `json:"bitrate,omitempty"`     // Bitrate in bps
-	Resolution string  `json:"resolution,omitempty"`  // e.g., "1920x1080"
-	Codec      string  `json:"codec,omitempty"`       // Video codec
-	AudioCodec string  `json:"audio_codec,omitempty"` // Audio codec
-	FrameRate  float64 `json:"frame_rate,omitempty"`  // FPS
-	Format     string  `json:"format,omitempty"`      // Container format
+	Duration     float64 `json:"duration_seconds,omitempty"` // Duration in seconds
+	DurationStr  string  `json:"duration,omitempty"`         // Human readable duration
+	Width        int     `json:"width,omitempty"`            // Video width
+	Height       int     `json:"height,omitempty"`           // Video height
+	Resolution   string  `json:"resolution,omitempty"`       // e.g., "1920x1080"
+	Bitrate      int64   `json:"bitrate,omitempty"`          // Bitrate in bps
+	FrameRate    float64 `json:"frame_rate,omitempty"`       // FPS
+	VideoCodec   string  `json:"video_codec,omitempty"`      // Video codec
+	AudioCodec   string  `json:"audio_codec,omitempty"`      // Audio codec
+	Format       string  `json:"format,omitempty"`           // Container format
+	AspectRatio  string  `json:"aspect_ratio,omitempty"`     // Aspect ratio
+	HasAudio     bool    `json:"has_audio,omitempty"`        // Has audio track
+	HasVideo     bool    `json:"has_video,omitempty"`        // Has video track
+	ThumbnailURL string  `json:"thumbnail_url,omitempty"`    // Thumbnail URL if available
 }
 
 // DirectoryInfo 表示目录信息
@@ -407,45 +416,52 @@ func (vs *VideoService) GetStats() map[string]interface{} {
 	}
 }
 
-// extractVideoMetadata 提取视频文件的基本元数据
+// extractVideoMetadata 提取视频文件的详细元数据
 func (vs *VideoService) extractVideoMetadata(filePath, ext string) VideoMetadata {
-	metadata := VideoMetadata{
-		Format: strings.TrimPrefix(ext, "."),
+	// Use the new metadata extractor
+	extracted, err := vs.metadataExtractor.ExtractMetadata(filePath)
+	if err != nil {
+		// Fallback to basic metadata on error
+		return VideoMetadata{
+			Format:      strings.TrimPrefix(ext, "."),
+			VideoCodec:  "Unknown",
+			AudioCodec:  "Unknown",
+			Duration:    1,
+			DurationStr: "00:00:01",
+			HasVideo:    true,
+			HasAudio:    true,
+		}
 	}
 
-	// 现在，我们将提取基本的文件元数据
-	// In a production system, you'd want to use ffprobe or similar
-	if stat, err := os.Stat(filePath); err == nil {
-		// 根据文件大小和编码器估计持续时间(非常粗略的估计)
-		switch ext {
-		case ".mp4", ".mov", ".m4v":
-			metadata.Codec = "H.264"
-			metadata.AudioCodec = "AAC"
-			// 粗略估计: ~1MB 每分钟的标准质量
-			if stat.Size() > 0 {
-				metadata.Duration = float64(stat.Size()) / (1024 * 1024) * 60 // Very rough estimate
-			}
-		case ".webm":
-			metadata.Codec = "VP8/VP9"
-			metadata.AudioCodec = "Vorbis/Opus"
-		case ".mkv":
-			metadata.Codec = "Various"
-			metadata.AudioCodec = "Various"
-		case ".avi":
-			metadata.Codec = "Various"
-			metadata.AudioCodec = "Various"
-		}
+	// Convert ExtractedMetadata to VideoMetadata
+	metadata := VideoMetadata{
+		Duration:     extracted.Duration,
+		DurationStr:  extracted.DurationStr,
+		Width:        extracted.Width,
+		Height:       extracted.Height,
+		Resolution:   extracted.Resolution,
+		Bitrate:      extracted.Bitrate,
+		FrameRate:    extracted.FrameRate,
+		VideoCodec:   extracted.VideoCodec,
+		AudioCodec:   extracted.AudioCodec,
+		Format:       extracted.Format,
+		AspectRatio:  extracted.AspectRatio,
+		HasAudio:     extracted.HasAudio,
+		HasVideo:     extracted.HasVideo,
+	}
 
-		// 设置常见默认值
-		if metadata.Duration > 0 && metadata.Duration < 1 {
-			metadata.Duration = 1 // 最小 1 秒
-		}
-		if metadata.Bitrate == 0 && metadata.Duration > 0 {
-			metadata.Bitrate = int64(float64(stat.Size()) * 8 / metadata.Duration) // 每秒比特数
-		}
+	// Generate thumbnail URL path (will be implemented later)
+	if metadata.HasVideo {
+		videoID := vs.generateVideoID(filepath.Dir(filePath), filepath.Base(filePath))
+		metadata.ThumbnailURL = fmt.Sprintf("/thumbnails/%s.jpg", videoID)
 	}
 
 	return metadata
+}
+
+// GetMetadataExtractor returns the metadata extractor instance
+func (vs *VideoService) GetMetadataExtractor() *VideoMetadataExtractor {
+	return vs.metadataExtractor
 }
 
 // ValidateVideoFile 检查视频文件是否可以正确访问且有效

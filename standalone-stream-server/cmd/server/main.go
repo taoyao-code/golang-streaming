@@ -57,6 +57,10 @@ func main() {
 	videoService := services.NewVideoService(cfg)
 	schedulerService := scheduler.NewSchedulerService(cfg)
 
+	// 初始化监控和日志组件
+	metricsCollector := middleware.NewMetricsCollector()
+	structuredLogger := middleware.NewStructuredLogger(cfg)
+
 	// 创建 Fiber 应用并配置
 	app := fiber.New(fiber.Config{
 		ServerHeader: fmt.Sprintf("%s/%s", AppName, AppVersion),
@@ -67,6 +71,14 @@ func main() {
 			if e, ok := err.(*fiber.Error); ok {
 				code = e.Code
 			}
+			
+			// 记录错误到结构化日志
+			structuredLogger.LogError("Request error", err, map[string]interface{}{
+				"method": c.Method(),
+				"path":   c.Path(),
+				"ip":     c.IP(),
+			})
+			
 			return c.Status(code).JSON(fiber.Map{
 				"error":     err.Error(),
 				"timestamp": time.Now().Unix(),
@@ -78,8 +90,15 @@ func main() {
 	middleware.Setup(app, cfg)
 	connLimiter := middleware.SetupConnectionLimiting(app, cfg)
 
+	// 添加监控和日志中间件
+	if cfg.Logging.AccessLog {
+		app.Use(structuredLogger.AccessLogger())
+	}
+	app.Use(structuredLogger.ErrorLogger())
+	app.Use(metricsCollector.MetricsMiddleware())
+
 	// 初始化处理器
-	healthHandler := handlers.NewHealthHandler(cfg, videoService, connLimiter)
+	healthHandler := handlers.NewHealthHandler(cfg, videoService, connLimiter, metricsCollector, structuredLogger)
 	videoHandler := handlers.NewVideoHandler(cfg, videoService)
 	uploadHandler := handlers.NewUploadHandler(cfg, videoService)
 	schedulerHandler := handlers.NewSchedulerHandler(cfg, schedulerService)
@@ -138,6 +157,9 @@ func setupRoutes(app *fiber.App, health *handlers.HealthHandler, video *handlers
 	// API 信息
 	app.Get("/api/info", health.Info)
 
+	// 监控端点
+	app.Get("/metrics", health.Metrics)
+
 	// 视频管理端点
 	api := app.Group("/api")
 	{
@@ -155,6 +177,9 @@ func setupRoutes(app *fiber.App, health *handlers.HealthHandler, video *handlers
 		api.Get("/video/:video-id", video.GetVideoInfo)
 		api.Get("/video/:video-id/validate", video.ValidateVideo)
 		
+		// 视频缩略图
+		api.Get("/thumbnail/:videoid", video.GetVideoThumbnail)
+		
 		// 流控统计
 		api.Get("/streaming/stats", video.GetFlowControlStats)
 		
@@ -163,7 +188,7 @@ func setupRoutes(app *fiber.App, health *handlers.HealthHandler, video *handlers
 		api.Get("/scheduler/status", scheduler.Status)
 		api.Post("/scheduler/start", scheduler.Start)
 		api.Post("/scheduler/stop", scheduler.Stop)
-		api.Post("/scheduler/video-delete/:video-id", scheduler.AddVideoDeletionTask)
+		api.Post("/scheduler/video-delete/:videoid", scheduler.AddVideoDeletionTask)
 	}
 
 	// 视频流媒体端点（顺序很重要 - 更具体的路由在前）
@@ -186,6 +211,14 @@ func setupRoutes(app *fiber.App, health *handlers.HealthHandler, video *handlers
 	app.Get("/player", func(c *fiber.Ctx) error {
 		return c.SendFile("./web/player.html")
 	})
+
+	// Serve video management dashboard
+	app.Get("/dashboard", func(c *fiber.Ctx) error {
+		return c.SendFile("./web/dashboard.html")
+	})
+
+	// Serve thumbnails directory
+	app.Static("/thumbnails", "./data/thumbnails")
 
 	// Debug endpoint to list all routes
 	app.Get("/debug/routes", func(c *fiber.Ctx) error {

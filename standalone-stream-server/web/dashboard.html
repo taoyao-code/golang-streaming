@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>视频流媒体管理中心</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            text-align: center;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #7f8c8d;
+            font-size: 1.2rem;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .sidebar {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            height: fit-content;
+        }
+
+        .content {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            color: #2c3e50;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .video-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .video-card {
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .video-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+        }
+
+        .video-thumbnail {
+            width: 100%;
+            height: 200px;
+            background: linear-gradient(45deg, #3498db, #8e44ad);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.2rem;
+            position: relative;
+        }
+
+        .video-thumbnail.has-thumb {
+            background: none;
+        }
+
+        .video-thumbnail img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .play-button {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.7);
+            border: none;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .play-button:hover {
+            background: rgba(0, 0, 0, 0.9);
+        }
+
+        .video-info {
+            padding: 20px;
+        }
+
+        .video-title {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+
+        .video-metadata {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            font-size: 0.9rem;
+            color: #7f8c8d;
+        }
+
+        .metadata-item {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .controls-section {
+            margin-bottom: 30px;
+        }
+
+        .search-box {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #ecf0f1;
+            border-radius: 10px;
+            font-size: 1rem;
+            margin-bottom: 20px;
+            transition: border-color 0.3s;
+        }
+
+        .search-box:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+
+        .filter-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+
+        .filter-btn {
+            padding: 10px 20px;
+            border: 2px solid #3498db;
+            background: transparent;
+            color: #3498db;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .filter-btn.active,
+        .filter-btn:hover {
+            background: #3498db;
+            color: white;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 50px;
+            color: #7f8c8d;
+        }
+
+        .error {
+            background: #e74c3c;
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+        }
+
+        .modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            border-radius: 20px;
+            padding: 0;
+            max-width: 90vw;
+            max-height: 90vh;
+            overflow: hidden;
+        }
+
+        .modal video {
+            width: 100%;
+            max-height: 70vh;
+        }
+
+        .modal-info {
+            padding: 20px;
+        }
+
+        .close-modal {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            cursor: pointer;
+            font-size: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .video-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎬 视频流媒体管理中心</h1>
+            <p>专业的视频流播放和管理平台</p>
+        </div>
+
+        <div class="main-content">
+            <div class="sidebar">
+                <h2 class="section-title">📊 系统统计</h2>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-number" id="total-videos">-</div>
+                        <div class="stat-label">总视频数</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="total-directories">-</div>
+                        <div class="stat-label">目录数</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="server-status">-</div>
+                        <div class="stat-label">服务状态</div>
+                    </div>
+                </div>
+
+                <h2 class="section-title">🔧 系统监控</h2>
+                <div id="system-info"></div>
+            </div>
+
+            <div class="content">
+                <div class="controls-section">
+                    <h2 class="section-title">🔍 视频浏览</h2>
+                    <input type="text" class="search-box" id="search-input" placeholder="搜索视频...">
+                    <div class="filter-buttons">
+                        <button class="filter-btn active" data-filter="all">全部</button>
+                        <button class="filter-btn" data-filter="movies">电影</button>
+                        <button class="filter-btn" data-filter="series">剧集</button>
+                        <button class="filter-btn" data-filter="recent">最近添加</button>
+                    </div>
+                </div>
+
+                <div id="error-container"></div>
+                <div id="video-container">
+                    <div class="loading">正在加载视频...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Video Player Modal -->
+    <div id="video-modal" class="modal">
+        <div class="modal-content">
+            <button class="close-modal" onclick="closeVideoModal()">&times;</button>
+            <video id="modal-video" controls>
+                您的浏览器不支持视频播放。
+            </video>
+            <div class="modal-info">
+                <h3 id="modal-title"></h3>
+                <div id="modal-metadata"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let allVideos = [];
+        let filteredVideos = [];
+        let currentFilter = 'all';
+
+        // Initialize the application
+        async function init() {
+            await loadSystemStats();
+            await loadVideos();
+            setupEventListeners();
+            setInterval(updateSystemInfo, 30000); // Update every 30 seconds
+        }
+
+        // Load system statistics
+        async function loadSystemStats() {
+            try {
+                const [videosResponse, healthResponse] = await Promise.all([
+                    fetch('/api/videos'),
+                    fetch('/health')
+                ]);
+
+                const videos = await videosResponse.json();
+                const health = await healthResponse.json();
+
+                document.getElementById('total-videos').textContent = videos.count || 0;
+                document.getElementById('total-directories').textContent = videos.directories?.length || 0;
+                document.getElementById('server-status').textContent = '运行中';
+                
+                updateSystemInfo();
+            } catch (error) {
+                console.error('Failed to load system stats:', error);
+                showError('无法加载系统统计信息');
+            }
+        }
+
+        // Update system information
+        async function updateSystemInfo() {
+            try {
+                const [schedulerResponse, flowResponse] = await Promise.all([
+                    fetch('/api/scheduler/stats'),
+                    fetch('/api/streaming/stats')
+                ]);
+
+                const scheduler = await schedulerResponse.json();
+                const flow = await flowResponse.json();
+
+                const systemInfo = document.getElementById('system-info');
+                systemInfo.innerHTML = `
+                    <div class="metadata-item">
+                        <span>调度器状态:</span>
+                        <span>${scheduler.scheduler.running ? '运行中' : '已停止'}</span>
+                    </div>
+                    <div class="metadata-item">
+                        <span>活跃连接:</span>
+                        <span>${flow.flow_control.connections.active}</span>
+                    </div>
+                    <div class="metadata-item">
+                        <span>总请求数:</span>
+                        <span>${flow.flow_control.requests.total_requests}</span>
+                    </div>
+                    <div class="metadata-item">
+                        <span>可用令牌:</span>
+                        <span>${flow.flow_control.tokens.available}</span>
+                    </div>
+                `;
+            } catch (error) {
+                console.error('Failed to update system info:', error);
+            }
+        }
+
+        // Load all videos
+        async function loadVideos() {
+            try {
+                const response = await fetch('/api/videos');
+                const data = await response.json();
+                allVideos = data.videos || [];
+                applyFilter();
+            } catch (error) {
+                console.error('Failed to load videos:', error);
+                showError('无法加载视频列表');
+            }
+        }
+
+        // Apply current filter and search
+        function applyFilter() {
+            const searchTerm = document.getElementById('search-input').value.toLowerCase();
+            
+            filteredVideos = allVideos.filter(video => {
+                const matchesSearch = video.name.toLowerCase().includes(searchTerm);
+                const matchesFilter = currentFilter === 'all' || video.directory === currentFilter;
+                return matchesSearch && matchesFilter;
+            });
+
+            if (currentFilter === 'recent') {
+                filteredVideos.sort((a, b) => b.modified - a.modified);
+                filteredVideos = filteredVideos.slice(0, 20); // Show only 20 most recent
+            }
+
+            renderVideos();
+        }
+
+        // Render videos in the grid
+        function renderVideos() {
+            const container = document.getElementById('video-container');
+            
+            if (filteredVideos.length === 0) {
+                container.innerHTML = '<div class="loading">没有找到视频</div>';
+                return;
+            }
+
+            const videoGrid = filteredVideos.map(video => `
+                <div class="video-card" onclick="playVideo('${video.id}', '${video.name}')">
+                    <div class="video-thumbnail ${video.metadata.thumbnail_url ? 'has-thumb' : ''}">
+                        ${video.metadata.thumbnail_url ? 
+                            `<img src="${video.metadata.thumbnail_url}" alt="${video.name}" onerror="this.style.display='none'">` : 
+                            '🎬 视频预览'
+                        }
+                        <button class="play-button">▶</button>
+                    </div>
+                    <div class="video-info">
+                        <div class="video-title">${video.name}</div>
+                        <div class="video-metadata">
+                            <div class="metadata-item">
+                                <span>时长:</span>
+                                <span>${video.metadata.duration || '未知'}</span>
+                            </div>
+                            <div class="metadata-item">
+                                <span>分辨率:</span>
+                                <span>${video.metadata.resolution || '未知'}</span>
+                            </div>
+                            <div class="metadata-item">
+                                <span>格式:</span>
+                                <span>${video.metadata.format || video.extension}</span>
+                            </div>
+                            <div class="metadata-item">
+                                <span>大小:</span>
+                                <span>${formatFileSize(video.size)}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+
+            container.innerHTML = `<div class="video-grid">${videoGrid}</div>`;
+        }
+
+        // Play video in modal
+        function playVideo(videoId, videoName) {
+            const video = allVideos.find(v => v.id === videoId);
+            if (!video) return;
+
+            const modal = document.getElementById('video-modal');
+            const modalVideo = document.getElementById('modal-video');
+            const modalTitle = document.getElementById('modal-title');
+            const modalMetadata = document.getElementById('modal-metadata');
+
+            modalVideo.src = video.stream_url;
+            modalTitle.textContent = videoName;
+            
+            modalMetadata.innerHTML = `
+                <div class="video-metadata">
+                    <div class="metadata-item">
+                        <span>时长:</span>
+                        <span>${video.metadata.duration || '未知'}</span>
+                    </div>
+                    <div class="metadata-item">
+                        <span>分辨率:</span>
+                        <span>${video.metadata.resolution || '未知'}</span>
+                    </div>
+                    <div class="metadata-item">
+                        <span>编码:</span>
+                        <span>${video.metadata.video_codec || '未知'}</span>
+                    </div>
+                    <div class="metadata-item">
+                        <span>音频:</span>
+                        <span>${video.metadata.audio_codec || '未知'}</span>
+                    </div>
+                    <div class="metadata-item">
+                        <span>比特率:</span>
+                        <span>${video.metadata.bitrate ? Math.round(video.metadata.bitrate / 1000) + ' kbps' : '未知'}</span>
+                    </div>
+                    <div class="metadata-item">
+                        <span>帧率:</span>
+                        <span>${video.metadata.frame_rate ? video.metadata.frame_rate.toFixed(1) + ' fps' : '未知'}</span>
+                    </div>
+                </div>
+            `;
+
+            modal.style.display = 'block';
+            modalVideo.play();
+        }
+
+        // Close video modal
+        function closeVideoModal() {
+            const modal = document.getElementById('video-modal');
+            const modalVideo = document.getElementById('modal-video');
+            
+            modalVideo.pause();
+            modal.style.display = 'none';
+        }
+
+        // Setup event listeners
+        function setupEventListeners() {
+            // Search input
+            document.getElementById('search-input').addEventListener('input', applyFilter);
+
+            // Filter buttons
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    currentFilter = btn.dataset.filter;
+                    applyFilter();
+                });
+            });
+
+            // Close modal on click outside
+            document.getElementById('video-modal').addEventListener('click', (e) => {
+                if (e.target.id === 'video-modal') {
+                    closeVideoModal();
+                }
+            });
+
+            // Keyboard shortcuts
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    closeVideoModal();
+                }
+            });
+        }
+
+        // Utility functions
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        function showError(message) {
+            const errorContainer = document.getElementById('error-container');
+            errorContainer.innerHTML = `<div class="error">${message}</div>`;
+            setTimeout(() => {
+                errorContainer.innerHTML = '';
+            }, 5000);
+        }
+
+        // Initialize the application when page loads
+        window.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+
+</html>

@@ -222,7 +222,7 @@ func TestHealthHandler_Info(t *testing.T) {
 }
 
 func TestHealthHandler_Ping(t *testing.T) {
-	handler := NewHealthHandler(nil, nil, nil)
+	handler := NewHealthHandler(nil, nil, nil, nil, nil)
 
 	app := fiber.New()
 	app.Get("/ping", handler.Ping)
@@ -338,7 +338,7 @@ func TestHealthHandler_Ready(t *testing.T) {
 }
 
 func TestHealthHandler_Live(t *testing.T) {
-	handler := NewHealthHandler(nil, nil, nil)
+	handler := NewHealthHandler(nil, nil, nil, nil, nil)
 
 	app := fiber.New()
 	app.Get("/live", handler.Live)

@@ -104,7 +104,9 @@ func setupTestServer(t *testing.T) (*fiber.App, *models.Config, string) {
 	connLimiter := middleware.NewConnectionLimiter(cfg.Server.MaxConns)
 
 	// 创建处理器
-	healthHandler := handlers.NewHealthHandler(cfg, videoService, connLimiter)
+	metricsCollector := middleware.NewMetricsCollector()
+	structuredLogger := middleware.NewStructuredLogger(cfg)
+	healthHandler := handlers.NewHealthHandler(cfg, videoService, connLimiter, metricsCollector, structuredLogger)
 	videoHandler := handlers.NewVideoHandler(cfg, videoService)
 	uploadHandler := handlers.NewUploadHandler(cfg, videoService)
 

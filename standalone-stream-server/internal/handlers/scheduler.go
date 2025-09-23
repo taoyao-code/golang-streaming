@@ -36,7 +36,7 @@ func (sh *SchedulerHandler) GetStats(c *fiber.Ctx) error {
 
 // AddVideoDeletionTask schedules a video for deletion
 func (sh *SchedulerHandler) AddVideoDeletionTask(c *fiber.Ctx) error {
-	videoID := c.Params("video-id")
+	videoID := c.Params("videoid")
 	if videoID == "" {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "Video ID is required",

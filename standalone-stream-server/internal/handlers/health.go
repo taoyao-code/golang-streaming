@@ -12,17 +12,21 @@ import (
 
 // HealthHandler 处理健康检查请求
 type HealthHandler struct {
-	config            *models.Config
-	videoService      *services.VideoService
-	connectionLimiter *middleware.ConnectionLimiter
+	config             *models.Config
+	videoService       *services.VideoService
+	connectionLimiter  *middleware.ConnectionLimiter
+	metricsCollector   *middleware.MetricsCollector
+	structuredLogger   *middleware.StructuredLogger
 }
 
 // NewHealthHandler 创建新的健康检查处理器
-func NewHealthHandler(config *models.Config, videoService *services.VideoService, connLimiter *middleware.ConnectionLimiter) *HealthHandler {
+func NewHealthHandler(config *models.Config, videoService *services.VideoService, connLimiter *middleware.ConnectionLimiter, metricsCollector *middleware.MetricsCollector, structuredLogger *middleware.StructuredLogger) *HealthHandler {
 	return &HealthHandler{
 		config:            config,
 		videoService:      videoService,
 		connectionLimiter: connLimiter,
+		metricsCollector:  metricsCollector,
+		structuredLogger:  structuredLogger,
 	}
 }
 
@@ -144,5 +148,32 @@ func (h *HealthHandler) Live(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{
 		"status":    "alive",
 		"timestamp": time.Now().Unix(),
+	})
+}
+
+// Metrics returns application metrics and performance data
+func (h *HealthHandler) Metrics(c *fiber.Ctx) error {
+	metrics := h.metricsCollector.GetMetrics()
+	
+	// Add connection limiter stats
+	connectionStats := map[string]interface{}{
+		"active":     h.connectionLimiter.GetActiveConnections(),
+		"max":        h.connectionLimiter.GetMaxConnections(),
+		"usage_pct":  float64(h.connectionLimiter.GetActiveConnections()) / float64(h.connectionLimiter.GetMaxConnections()) * 100,
+	}
+
+	// Add video service stats
+	videoStats := h.videoService.GetStats()
+
+	return c.JSON(fiber.Map{
+		"metrics":      metrics,
+		"connections":  connectionStats,
+		"video_stats":  videoStats,
+		"timestamp":    time.Now().Unix(),
+		"server_info": fiber.Map{
+			"version":    "2.0.0",
+			"framework":  "GoFiber",
+			"go_version": "1.25",
+		},
 	})
 }
