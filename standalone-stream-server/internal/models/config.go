@@ -2,7 +2,7 @@ package models
 
 import "time"
 
-// Config holds the complete server configuration
+// Config 保存完整的服务器配置
 type Config struct {
 	Server   ServerConfig   `mapstructure:"server" yaml:"server"`
 	Video    VideoConfig    `mapstructure:"video" yaml:"video"`
@@ -10,7 +10,7 @@ type Config struct {
 	Security SecurityConfig `mapstructure:"security" yaml:"security"`
 }
 
-// ServerConfig holds server-specific configuration
+// ServerConfig 保存服务器特定的配置
 type ServerConfig struct {
 	Port            int           `mapstructure:"port" yaml:"port"`
 	Host            string        `mapstructure:"host" yaml:"host"`
@@ -20,7 +20,7 @@ type ServerConfig struct {
 	GracefulTimeout time.Duration `mapstructure:"graceful_timeout" yaml:"graceful_timeout"`
 }
 
-// VideoConfig holds video-related configuration
+// VideoConfig 保存视频相关的配置
 type VideoConfig struct {
 	Directories       []VideoDirectory `mapstructure:"directories" yaml:"directories"`
 	MaxUploadSize     int64            `mapstructure:"max_upload_size" yaml:"max_upload_size"`
@@ -28,7 +28,7 @@ type VideoConfig struct {
 	StreamingSettings StreamSettings   `mapstructure:"streaming" yaml:"streaming"`
 }
 
-// VideoDirectory represents a video source directory
+// VideoDirectory 表示视频源目录
 type VideoDirectory struct {
 	Name        string `mapstructure:"name" yaml:"name"`
 	Path        string `mapstructure:"path" yaml:"path"`
@@ -36,7 +36,7 @@ type VideoDirectory struct {
 	Enabled     bool   `mapstructure:"enabled" yaml:"enabled"`
 }
 
-// StreamSettings holds streaming-specific settings
+// StreamSettings 保存流媒体特定的设置
 type StreamSettings struct {
 	CacheControl string        `mapstructure:"cache_control" yaml:"cache_control"`
 	BufferSize   int           `mapstructure:"buffer_size" yaml:"buffer_size"`
@@ -45,7 +45,7 @@ type StreamSettings struct {
 	ConnTimeout  time.Duration `mapstructure:"connection_timeout" yaml:"connection_timeout"`
 }
 
-// LoggingConfig holds logging configuration
+// LoggingConfig 保存日志配置
 type LoggingConfig struct {
 	Level     string `mapstructure:"level" yaml:"level"`
 	Format    string `mapstructure:"format" yaml:"format"`
@@ -54,14 +54,14 @@ type LoggingConfig struct {
 	ErrorLog  bool   `mapstructure:"error_log" yaml:"error_log"`
 }
 
-// SecurityConfig holds security-related configuration
+// SecurityConfig 保存安全相关的配置
 type SecurityConfig struct {
 	CORS      CORSConfig `mapstructure:"cors" yaml:"cors"`
 	RateLimit RateConfig `mapstructure:"rate_limit" yaml:"rate_limit"`
 	Auth      AuthConfig `mapstructure:"auth" yaml:"auth"`
 }
 
-// CORSConfig holds CORS configuration
+// CORSConfig 保存 CORS 配置
 type CORSConfig struct {
 	AllowedOrigins []string `mapstructure:"allowed_origins" yaml:"allowed_origins"`
 	AllowedMethods []string `mapstructure:"allowed_methods" yaml:"allowed_methods"`
@@ -69,7 +69,7 @@ type CORSConfig struct {
 	Enabled        bool     `mapstructure:"enabled" yaml:"enabled"`
 }
 
-// RateConfig holds rate limiting configuration
+// RateConfig 保存速率限制配置
 type RateConfig struct {
 	Enabled        bool          `mapstructure:"enabled" yaml:"enabled"`
 	RequestsPerMin int           `mapstructure:"requests_per_minute" yaml:"requests_per_minute"`
@@ -77,7 +77,7 @@ type RateConfig struct {
 	CleanupTime    time.Duration `mapstructure:"cleanup_time" yaml:"cleanup_time"`
 }
 
-// AuthConfig holds authentication configuration
+// AuthConfig 保存认证配置
 type AuthConfig struct {
 	Enabled   bool   `mapstructure:"enabled" yaml:"enabled"`
 	Type      string `mapstructure:"type" yaml:"type"`

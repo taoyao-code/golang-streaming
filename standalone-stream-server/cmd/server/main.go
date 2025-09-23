@@ -20,9 +20,9 @@ import (
 )
 
 var (
-	configPath = flag.String("config", "", "Path to configuration file")
-	showConfig = flag.Bool("show-config", false, "Show example configuration and exit")
-	version    = flag.Bool("version", false, "Show version information")
+	configPath = flag.String("config", "", "配置文件路径")
+	showConfig = flag.Bool("show-config", false, "显示示例配置并退出")
+	version    = flag.Bool("version", false, "显示版本信息")
 )
 
 const (
@@ -34,28 +34,28 @@ const (
 func main() {
 	flag.Parse()
 
-	// Show version information
+	// 显示版本信息
 	if *version {
 		fmt.Printf("%s v%s (Framework: %s)\n", AppName, AppVersion, Framework)
 		os.Exit(0)
 	}
 
-	// Show example configuration
+	// 显示示例配置
 	if *showConfig {
 		fmt.Println(config.GetConfigExample())
 		os.Exit(0)
 	}
 
-	// Load configuration
+	// 加载配置
 	cfg, err := config.Load(*configPath)
 	if err != nil {
 		log.Fatalf("Failed to load configuration: %v", err)
 	}
 
-	// Initialize services
+	// 初始化服务
 	videoService := services.NewVideoService(cfg)
 
-	// Create Fiber app with configuration
+	// 创建 Fiber 应用并配置
 	app := fiber.New(fiber.Config{
 		ServerHeader: fmt.Sprintf("%s/%s", AppName, AppVersion),
 		ReadTimeout:  cfg.Server.ReadTimeout,
@@ -72,37 +72,37 @@ func main() {
 		},
 	})
 
-	// Setup middleware
+	// 设置中间件
 	middleware.Setup(app, cfg)
 	connLimiter := middleware.SetupConnectionLimiting(app, cfg)
 
-	// Initialize handlers
+	// 初始化处理器
 	healthHandler := handlers.NewHealthHandler(cfg, videoService, connLimiter)
 	videoHandler := handlers.NewVideoHandler(cfg, videoService)
 	uploadHandler := handlers.NewUploadHandler(cfg, videoService)
 
-	// Setup routes
+	// 设置路由
 	setupRoutes(app, healthHandler, videoHandler, uploadHandler)
 
-	// Start server
+	// 启动服务器
 	addr := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)
 
-	// Log startup information
+	// 记录启动信息
 	logStartupInfo(cfg, addr)
 
-	// Graceful shutdown
+	// 优雅关闭
 	go func() {
 		if err := app.Listen(addr); err != nil {
 			log.Fatalf("Failed to start server: %v", err)
 		}
 	}()
 
-	// Wait for interrupt signal
+	// 等待中断信号
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	<-c
 
-	log.Println("Gracefully shutting down...")
+	log.Println("正在优雅关闭...")
 
 	ctx, cancel := context.WithTimeout(context.Background(), cfg.Server.GracefulTimeout)
 	defer cancel()
@@ -111,43 +111,43 @@ func main() {
 		log.Printf("Server shutdown error: %v", err)
 	}
 
-	log.Println("Server stopped")
+	log.Println("服务器已停止")
 }
 
-// setupRoutes configures all application routes
+// setupRoutes 配置所有应用路由
 func setupRoutes(app *fiber.App, health *handlers.HealthHandler, video *handlers.VideoHandler, upload *handlers.UploadHandler) {
-	// Health and monitoring endpoints
+	// 健康检查和监控端点
 	app.Get("/health", health.Health)
 	app.Get("/ping", health.Ping)
 	app.Get("/ready", health.Ready)
 	app.Get("/live", health.Live)
 
-	// API information
+	// API 信息
 	app.Get("/api/info", health.Info)
 
-	// Video management endpoints
+	// 视频管理端点
 	api := app.Group("/api")
 	{
-		// Directory management
+		// 目录管理
 		api.Get("/directories", video.ListDirectories)
 
-		// Video listing
+		// 视频列表
 		api.Get("/videos", video.ListAllVideos)
 		api.Get("/videos/:directory", video.ListVideosInDirectory)
 
-		// Video search
+		// 视频搜索
 		api.Get("/search", video.SearchVideos)
 
-		// Video information
+		// 视频信息
 		api.Get("/video/:video-id", video.GetVideoInfo)
 		api.Get("/video/:video-id/validate", video.ValidateVideo)
 	}
 
-	// Video streaming endpoints (order matters - more specific routes first)
+	// 视频流媒体端点（顺序很重要 - 更具体的路由在前）
 	app.Get("/stream/:directory/:videoid", video.StreamVideoByDirectory)
 	app.Get("/stream/:videoid", video.StreamVideo)
 
-	// Upload endpoints
+	// 上传端点
 	upload_group := app.Group("/upload")
 	{
 		upload_group.Post("/:directory/:videoid", upload.UploadVideo)

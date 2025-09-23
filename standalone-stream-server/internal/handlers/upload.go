@@ -14,13 +14,13 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-// UploadHandler handles video upload requests
+// UploadHandler 处理视频上传请求
 type UploadHandler struct {
 	config       *models.Config
 	videoService *services.VideoService
 }
 
-// NewUploadHandler creates a new upload handler
+// NewUploadHandler 创建新的上传处理器
 func NewUploadHandler(config *models.Config, videoService *services.VideoService) *UploadHandler {
 	return &UploadHandler{
 		config:       config,
@@ -28,7 +28,7 @@ func NewUploadHandler(config *models.Config, videoService *services.VideoService
 	}
 }
 
-// UploadVideo handles video file uploads to a specific directory
+// UploadVideo 处理视频文件上传到指定目录
 func (uh *UploadHandler) UploadVideo(c *fiber.Ctx) error {
 	directory := c.Params("directory")
 	videoID := c.Params("videoid")
@@ -124,7 +124,7 @@ func (uh *UploadHandler) UploadVideo(c *fiber.Ctx) error {
 	targetPath := filepath.Join(targetDir.Path, filename)
 
 	// Ensure target directory exists
-	if err := os.MkdirAll(targetDir.Path, 0755); err != nil {
+	if err := os.MkdirAll(targetDir.Path, 0o755); err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error":   "Failed to create target directory",
 			"details": err.Error(),
@@ -197,7 +197,7 @@ func (uh *UploadHandler) UploadVideo(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(response)
 }
 
-// UploadMultipleVideos handles multiple video uploads to a specific directory
+// UploadMultipleVideos 处理多个视频上传到指定目录
 func (uh *UploadHandler) UploadMultipleVideos(c *fiber.Ctx) error {
 	directory := c.Params("directory")
 
@@ -345,7 +345,7 @@ func (uh *UploadHandler) processUploadedFile(file *multipart.FileHeader, directo
 	}, nil
 }
 
-// Helper methods
+// 辅助方法
 
 func (uh *UploadHandler) isVideoFile(ext string) bool {
 	for _, supportedExt := range uh.config.Video.SupportedFormats {

@@ -13,38 +13,38 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/recover"
 )
 
-// Setup configures all middleware for the Fiber app
+// Setup 为 Fiber 应用配置所有中间件
 func Setup(app *fiber.App, config *models.Config) {
-	// Recovery middleware - should be first
+	// 恢复中间件 - 应该放在第一位
 	app.Use(recover.New(recover.Config{
 		EnableStackTrace: true,
 	}))
 
-	// Logging middleware
+	// 日志中间件
 	if config.Logging.AccessLog {
 		setupLogging(app, config)
 	}
 
-	// CORS middleware
+	// CORS 中间件
 	if config.Security.CORS.Enabled {
 		setupCORS(app, config)
 	}
 
-	// Rate limiting middleware
+	// 速率限制中间件
 	if config.Security.RateLimit.Enabled {
 		setupRateLimit(app, config)
 	}
 
-	// Authentication middleware (if enabled)
+	// 认证中间件(如果启用)
 	if config.Security.Auth.Enabled {
 		setupAuth(app, config)
 	}
 
-	// Custom headers and security
+	// 自定义头和安全
 	setupSecurity(app, config)
 }
 
-// setupLogging configures logging middleware
+// setupLogging 配置日志中间件
 func setupLogging(app *fiber.App, config *models.Config) {
 	logConfig := logger.Config{
 		Format:     "[${time}] ${status} - ${method} ${path} - ${ip} - ${latency}\n",
@@ -59,7 +59,7 @@ func setupLogging(app *fiber.App, config *models.Config) {
 	app.Use(logger.New(logConfig))
 }
 
-// setupCORS configures CORS middleware
+// setupCORS 配置 CORS 中间件
 func setupCORS(app *fiber.App, config *models.Config) {
 	corsConfig := cors.Config{
 		AllowOrigins:     joinStringSlice(config.Security.CORS.AllowedOrigins, ","),
@@ -72,7 +72,7 @@ func setupCORS(app *fiber.App, config *models.Config) {
 	app.Use(cors.New(corsConfig))
 }
 
-// setupRateLimit configures rate limiting middleware
+// setupRateLimit 配置速率限制中间件
 func setupRateLimit(app *fiber.App, config *models.Config) {
 	rateLimitConfig := limiter.Config{
 		Max:               config.Security.RateLimit.RequestsPerMin,
@@ -94,12 +94,12 @@ func setupRateLimit(app *fiber.App, config *models.Config) {
 	app.Use(limiter.New(rateLimitConfig))
 }
 
-// setupAuth configures authentication middleware
+// setupAuth 配置认证中间件
 func setupAuth(app *fiber.App, config *models.Config) {
 	switch config.Security.Auth.Type {
 	case "api_key":
 		app.Use(func(c *fiber.Ctx) error {
-			// Skip auth for health check and info endpoints
+			// 跳过认证健康检查和 info 端点
 			if c.Path() == "/health" || c.Path() == "/api/info" {
 				return c.Next()
 			}
@@ -120,12 +120,12 @@ func setupAuth(app *fiber.App, config *models.Config) {
 
 	case "basic":
 		app.Use(func(c *fiber.Ctx) error {
-			// Skip auth for health check and info endpoints
+			// 跳过健康检查和信息端点的认证
 			if c.Path() == "/health" || c.Path() == "/api/info" {
 				return c.Next()
 			}
 
-			// Get Authorization header
+			// 获取 Authorization 头
 			auth := c.Get("Authorization")
 			if auth == "" {
 				return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
@@ -145,29 +145,29 @@ func setupAuth(app *fiber.App, config *models.Config) {
 	}
 }
 
-// setupSecurity configures security headers and other security measures
+// setupSecurity 配置安全头和其他安全措施
 func setupSecurity(app *fiber.App, config *models.Config) {
 	app.Use(func(c *fiber.Ctx) error {
-		// Security headers
+		// 安全头
 		c.Set("X-Content-Type-Options", "nosniff")
 		c.Set("X-Frame-Options", "DENY")
 		c.Set("X-XSS-Protection", "1; mode=block")
 		c.Set("Referrer-Policy", "strict-origin-when-cross-origin")
 
-		// Server identification
+		// 服务器识别
 		c.Set("Server", "Standalone-Video-Streaming-Server/1.0")
 
 		return c.Next()
 	})
 }
 
-// ConnectionLimiter provides connection limiting functionality
+// ConnectionLimiter 提供连接限制功能
 type ConnectionLimiter struct {
 	semaphore chan struct{}
 	maxConns  int
 }
 
-// NewConnectionLimiter creates a new connection limiter
+// NewConnectionLimiter 创建新的连接限制器
 func NewConnectionLimiter(maxConns int) *ConnectionLimiter {
 	return &ConnectionLimiter{
 		semaphore: make(chan struct{}, maxConns),
@@ -175,7 +175,7 @@ func NewConnectionLimiter(maxConns int) *ConnectionLimiter {
 	}
 }
 
-// Acquire attempts to acquire a connection slot
+// Acquire 尝试获取连接槽位
 func (cl *ConnectionLimiter) Acquire() bool {
 	select {
 	case cl.semaphore <- struct{}{}:
@@ -185,7 +185,7 @@ func (cl *ConnectionLimiter) Acquire() bool {
 	}
 }
 
-// Release releases a connection slot
+// Release 释放连接槽位
 func (cl *ConnectionLimiter) Release() {
 	select {
 	case <-cl.semaphore:
@@ -194,17 +194,17 @@ func (cl *ConnectionLimiter) Release() {
 	}
 }
 
-// GetActiveConnections returns the number of active connections
+// GetActiveConnections 返回活跃连接数
 func (cl *ConnectionLimiter) GetActiveConnections() int {
 	return len(cl.semaphore)
 }
 
-// GetMaxConnections returns the maximum number of connections
+// GetMaxConnections 返回最大连接数
 func (cl *ConnectionLimiter) GetMaxConnections() int {
 	return cl.maxConns
 }
 
-// SetupConnectionLimiting adds connection limiting middleware
+// SetupConnectionLimiting 添加连接限制中间件
 func SetupConnectionLimiting(app *fiber.App, config *models.Config) *ConnectionLimiter {
 	limiter := NewConnectionLimiter(config.Server.MaxConns)
 
@@ -217,7 +217,7 @@ func SetupConnectionLimiting(app *fiber.App, config *models.Config) *ConnectionL
 			})
 		}
 
-		// Ensure connection is released when request completes
+		// 确保连接在请求完成时释放
 		defer limiter.Release()
 
 		return c.Next()
@@ -226,7 +226,7 @@ func SetupConnectionLimiting(app *fiber.App, config *models.Config) *ConnectionL
 	return limiter
 }
 
-// Helper functions
+// 辅助函数
 
 func joinStringSlice(slice []string, sep string) string {
 	if len(slice) == 0 {
@@ -243,13 +243,13 @@ func joinStringSlice(slice []string, sep string) string {
 	return result
 }
 
-// RequestLogger provides structured request logging
+// RequestLogger 提供结构化请求日志记录
 func RequestLogger(config *models.Config) fiber.Handler {
 	return logger.New(logger.Config{
 		Format:     createLogFormat(config.Logging.Format),
 		TimeFormat: "2006-01-02T15:04:05.000Z",
 		TimeZone:   "UTC",
-		Output:     nil, // Will use default output
+		Output:     nil, // 将使用默认输出
 	})
 }
 
@@ -258,6 +258,6 @@ func createLogFormat(format string) string {
 		return `{"timestamp":"${time}","level":"info","method":"${method}","path":"${path}","status":${status},"latency":"${latency}","ip":"${ip}","user_agent":"${ua}","bytes_sent":${bytesSent},"bytes_received":${bytesReceived},"referer":"${referer}"}` + "\n"
 	}
 
-	// Default text format
+	// 默认文本格式
 	return "[${time}] ${ip} - ${method} ${path} ${status} ${latency} \"${ua}\"\n"
 }

@@ -11,49 +11,49 @@ import (
 	"github.com/spf13/viper"
 )
 
-// Load loads configuration from YAML file and environment variables
+// Load 从 YAML 文件和环境变量加载配置
 func Load(configPath string) (*models.Config, error) {
-	// Set default values
+	// 设置默认值
 	setDefaults()
 
-	// Configure viper
+	// 配置 viper
 	viper.SetConfigType("yaml")
 	viper.AutomaticEnv()
 	viper.SetEnvPrefix("STREAMING")
 
-	// If config path is provided, use it
+	// 如果提供了配置路径，使用它
 	if configPath != "" {
 		viper.SetConfigFile(configPath)
 	} else {
-		// Look for config in standard locations
+		// 在标准位置查找配置
 		viper.SetConfigName("config")
 		viper.AddConfigPath("./configs")
 		viper.AddConfigPath("./")
 		viper.AddConfigPath("/etc/streaming-server/")
 	}
 
-	// Read configuration
+	// 读取配置
 	if err := viper.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-			// Config file not found, use defaults
+			// 配置文件未找到，使用默认值
 			fmt.Printf("Warning: Config file not found, using defaults\n")
 		} else {
 			return nil, fmt.Errorf("error reading config file: %w", err)
 		}
 	}
 
-	// Unmarshal into struct
+	// 解组到结构体
 	var config models.Config
 	if err := viper.Unmarshal(&config); err != nil {
 		return nil, fmt.Errorf("error unmarshaling config: %w", err)
 	}
 
-	// Validate configuration
+	// 验证配置
 	if err := validateConfig(&config); err != nil {
 		return nil, fmt.Errorf("invalid configuration: %w", err)
 	}
 
-	// Create video directories if they don't exist
+	// 如果视频目录不存在则创建
 	if err := ensureVideoDirectories(&config); err != nil {
 		return nil, fmt.Errorf("error creating video directories: %w", err)
 	}
@@ -63,7 +63,7 @@ func Load(configPath string) (*models.Config, error) {
 
 // setDefaults sets default configuration values
 func setDefaults() {
-	// Server defaults
+	// 服务器默认值
 	viper.SetDefault("server.port", 9000)
 	viper.SetDefault("server.host", "0.0.0.0")
 	viper.SetDefault("server.read_timeout", "30s")
@@ -71,7 +71,7 @@ func setDefaults() {
 	viper.SetDefault("server.max_connections", 100)
 	viper.SetDefault("server.graceful_timeout", "30s")
 
-	// Video defaults
+	// 视频默认值
 	viper.SetDefault("video.directories", []models.VideoDirectory{
 		{
 			Name:        "default",
@@ -95,7 +95,7 @@ func setDefaults() {
 	viper.SetDefault("logging.access_log", true)
 	viper.SetDefault("logging.error_log", true)
 
-	// Security defaults
+	// 安全默认值
 	viper.SetDefault("security.cors.enabled", true)
 	viper.SetDefault("security.cors.allowed_origins", []string{"*"})
 	viper.SetDefault("security.cors.allowed_methods", []string{"GET", "POST", "OPTIONS"})
@@ -178,7 +178,7 @@ func ensureVideoDirectories(config *models.Config) error {
 	return nil
 }
 
-// GetConfigExample returns an example configuration for documentation
+// GetConfigExample 返回用于文档的示例配置
 func GetConfigExample() string {
 	return `# Standalone Video Streaming Server Configuration
 
@@ -243,9 +243,9 @@ security:
 `
 }
 
-// Validate validates the configuration for correctness
+// Validate 验证配置的正确性
 func Validate(config *models.Config) error {
-	// Validate server configuration
+	// 验证服务器配置
 	if config.Server.Port <= 0 || config.Server.Port > 65535 {
 		return fmt.Errorf("invalid port: %d", config.Server.Port)
 	}
@@ -254,7 +254,7 @@ func Validate(config *models.Config) error {
 		return fmt.Errorf("invalid max connections: %d", config.Server.MaxConns)
 	}
 
-	// Validate video configuration
+	// 验证视频配置
 	if len(config.Video.Directories) == 0 {
 		return fmt.Errorf("no video directories configured")
 	}
@@ -263,7 +263,7 @@ func Validate(config *models.Config) error {
 		return fmt.Errorf("invalid max upload size: %d", config.Video.MaxUploadSize)
 	}
 
-	// Validate video directories
+	// 验证视频目录
 	for _, dir := range config.Video.Directories {
 		if dir.Name == "" {
 			return fmt.Errorf("directory name cannot be empty")
@@ -273,7 +273,7 @@ func Validate(config *models.Config) error {
 			return fmt.Errorf("directory path cannot be empty")
 		}
 
-		// Check if directory exists and is accessible
+		// 检查目录是否存在且可访问
 		if dir.Enabled {
 			if _, err := os.Stat(dir.Path); os.IsNotExist(err) {
 				return fmt.Errorf("directory does not exist: %s", dir.Path)

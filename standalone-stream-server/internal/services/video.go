@@ -10,19 +10,19 @@ import (
 	"standalone-stream-server/internal/models"
 )
 
-// VideoService handles video-related operations
+// VideoService 处理视频相关操作
 type VideoService struct {
 	config *models.Config
 }
 
-// NewVideoService creates a new video service
+// NewVideoService 创建新的视频服务
 func NewVideoService(config *models.Config) *VideoService {
 	return &VideoService{
 		config: config,
 	}
 }
 
-// VideoInfo represents video file information
+// VideoInfo 表示视频文件信息
 type VideoInfo struct {
 	ID          string        `json:"id"`
 	Name        string        `json:"name"`
@@ -37,7 +37,7 @@ type VideoInfo struct {
 	Available   bool          `json:"available"`
 }
 
-// VideoMetadata holds additional video information
+// VideoMetadata 保存额外的视频信息
 type VideoMetadata struct {
 	Duration   float64 `json:"duration,omitempty"`    // Duration in seconds
 	Bitrate    int64   `json:"bitrate,omitempty"`     // Bitrate in bps
@@ -48,7 +48,7 @@ type VideoMetadata struct {
 	Format     string  `json:"format,omitempty"`      // Container format
 }
 
-// DirectoryInfo represents directory information
+// DirectoryInfo 表示目录信息
 type DirectoryInfo struct {
 	Name        string      `json:"name"`
 	Path        string      `json:"path"`
@@ -59,7 +59,7 @@ type DirectoryInfo struct {
 	Videos      []VideoInfo `json:"videos,omitempty"`
 }
 
-// ListAllVideos returns all videos from all enabled directories
+// ListAllVideos 返回所有启用的目录中的所有视频
 func (vs *VideoService) ListAllVideos() ([]VideoInfo, error) {
 	var allVideos []VideoInfo
 
@@ -70,7 +70,7 @@ func (vs *VideoService) ListAllVideos() ([]VideoInfo, error) {
 
 		videos, err := vs.ListVideosInDirectory(dir.Name)
 		if err != nil {
-			// Log error but continue with other directories
+			// 记录错误但继续处理其他目录
 			continue
 		}
 
@@ -80,7 +80,7 @@ func (vs *VideoService) ListAllVideos() ([]VideoInfo, error) {
 	return allVideos, nil
 }
 
-// ListVideosInDirectory returns videos from a specific directory
+// ListVideosInDirectory 返回特定目录中的视频
 func (vs *VideoService) ListVideosInDirectory(directoryName string) ([]VideoInfo, error) {
 	dir := vs.findDirectory(directoryName)
 	if dir == nil {
@@ -124,7 +124,7 @@ func (vs *VideoService) ListVideosInDirectory(directoryName string) ([]VideoInfo
 			Path:        filepath.Join(dir.Path, name),
 			Extension:   ext,
 			StreamURL:   fmt.Sprintf("/stream/%s/%s", directoryName, strings.TrimSuffix(name, ext)),
-			Available:   true, // File exists and is readable
+			Available:   true, // 文件存在且可读
 			Metadata:    vs.extractVideoMetadata(filepath.Join(dir.Path, name), ext),
 		}
 
@@ -134,7 +134,7 @@ func (vs *VideoService) ListVideosInDirectory(directoryName string) ([]VideoInfo
 	return videos, nil
 }
 
-// GetDirectoriesInfo returns information about all directories
+// GetDirectoriesInfo 返回所有目录的信息
 func (vs *VideoService) GetDirectoriesInfo() []DirectoryInfo {
 	var directories []DirectoryInfo
 
@@ -153,7 +153,7 @@ func (vs *VideoService) GetDirectoriesInfo() []DirectoryInfo {
 				for _, video := range videos {
 					dirInfo.TotalSize += video.Size
 				}
-				// Optionally include videos in response
+				// 可选地包含视频在响应中
 				// dirInfo.Videos = videos
 			}
 		}
@@ -164,12 +164,12 @@ func (vs *VideoService) GetDirectoriesInfo() []DirectoryInfo {
 	return directories
 }
 
-// FindVideoByID finds a video by its ID across all directories
+// FindVideoByID 通过 ID 查找视频
 func (vs *VideoService) FindVideoByID(videoID string) (*VideoInfo, error) {
 	// Parse video ID to extract directory and filename
 	parts := strings.SplitN(videoID, ":", 2)
 	if len(parts) != 2 {
-		// Fallback: search in all directories
+		// 回退: 在所有目录中搜索
 		return vs.findVideoInAllDirectories(videoID)
 	}
 
@@ -209,20 +209,20 @@ func (vs *VideoService) FindVideoByID(videoID string) (*VideoInfo, error) {
 	return video, nil
 }
 
-// SaveUploadedVideo saves an uploaded video to the specified directory
+// SaveUploadedVideo 保存上传的视频到指定目录
 func (vs *VideoService) SaveUploadedVideo(directoryName, filename string, size int64) error {
 	dir := vs.findDirectory(directoryName)
 	if dir == nil || !dir.Enabled {
 		return fmt.Errorf("directory not found or disabled: %s", directoryName)
 	}
 
-	// Validate file extension
+	// 验证文件扩展名
 	ext := strings.ToLower(filepath.Ext(filename))
 	if !vs.isVideoFile(ext) {
 		return fmt.Errorf("unsupported video format: %s", ext)
 	}
 
-	// Check upload size limit
+	// 检查上传大小限制
 	if size > vs.config.Video.MaxUploadSize {
 		return fmt.Errorf("file size exceeds limit: %d > %d", size, vs.config.Video.MaxUploadSize)
 	}
@@ -230,7 +230,7 @@ func (vs *VideoService) SaveUploadedVideo(directoryName, filename string, size i
 	return nil
 }
 
-// Helper methods
+// 辅助方法
 
 func (vs *VideoService) findDirectory(name string) *models.VideoDirectory {
 	for _, dir := range vs.config.Video.Directories {
@@ -313,7 +313,7 @@ func (vs *VideoService) generateVideoID(directory, filename string) string {
 	return fmt.Sprintf("%s:%s", directory, filename)
 }
 
-// GetStats returns overall video statistics
+// GetStats 返回整体视频统计信息
 func (vs *VideoService) GetStats() map[string]interface{} {
 	totalVideos := 0
 	totalSize := int64(0)
@@ -347,21 +347,21 @@ func (vs *VideoService) GetStats() map[string]interface{} {
 	}
 }
 
-// extractVideoMetadata extracts basic metadata from video files
+// extractVideoMetadata 提取视频文件的基本元数据
 func (vs *VideoService) extractVideoMetadata(filePath, ext string) VideoMetadata {
 	metadata := VideoMetadata{
 		Format: strings.TrimPrefix(ext, "."),
 	}
 
-	// For now, we'll extract basic file-based metadata
+	// 现在，我们将提取基本的文件元数据
 	// In a production system, you'd want to use ffprobe or similar
 	if stat, err := os.Stat(filePath); err == nil {
-		// Estimate duration based on file size and codec (very rough estimate)
+		// 根据文件大小和编码器估计持续时间(非常粗略的估计)
 		switch ext {
 		case ".mp4", ".mov", ".m4v":
 			metadata.Codec = "H.264"
 			metadata.AudioCodec = "AAC"
-			// Rough estimate: ~1MB per minute for standard quality
+			// 粗略估计: ~1MB 每分钟的标准质量
 			if stat.Size() > 0 {
 				metadata.Duration = float64(stat.Size()) / (1024 * 1024) * 60 // Very rough estimate
 			}
@@ -376,32 +376,32 @@ func (vs *VideoService) extractVideoMetadata(filePath, ext string) VideoMetadata
 			metadata.AudioCodec = "Various"
 		}
 
-		// Set common defaults
+		// 设置常见默认值
 		if metadata.Duration > 0 && metadata.Duration < 1 {
-			metadata.Duration = 1 // Minimum 1 second
+			metadata.Duration = 1 // 最小 1 秒
 		}
 		if metadata.Bitrate == 0 && metadata.Duration > 0 {
-			metadata.Bitrate = int64(float64(stat.Size()) * 8 / metadata.Duration) // bits per second
+			metadata.Bitrate = int64(float64(stat.Size()) * 8 / metadata.Duration) // 每秒比特数
 		}
 	}
 
 	return metadata
 }
 
-// ValidateVideoFile checks if a video file is properly accessible and valid
+// ValidateVideoFile 检查视频文件是否可以正确访问且有效
 func (vs *VideoService) ValidateVideoFile(filePath string) error {
 	// Check if file exists and is readable
 	if _, err := os.Stat(filePath); err != nil {
 		return fmt.Errorf("file not accessible: %w", err)
 	}
 
-	// Check file extension
+	// 检查文件扩展名
 	ext := strings.ToLower(filepath.Ext(filePath))
 	if !vs.isVideoFile(ext) {
 		return fmt.Errorf("unsupported video format: %s", ext)
 	}
 
-	// Check file size
+	// 检查文件大小
 	if stat, err := os.Stat(filePath); err == nil {
 		if stat.Size() == 0 {
 			return fmt.Errorf("video file is empty")
@@ -414,7 +414,7 @@ func (vs *VideoService) ValidateVideoFile(filePath string) error {
 	return nil
 }
 
-// SearchVideos searches for videos across all directories by name
+// SearchVideos 通过名称搜索所有目录中的视频
 func (vs *VideoService) SearchVideos(query string) ([]VideoInfo, error) {
 	if query == "" {
 		return []VideoInfo{}, nil
@@ -429,7 +429,7 @@ func (vs *VideoService) SearchVideos(query string) ([]VideoInfo, error) {
 	}
 
 	for _, video := range allVideos {
-		// Search in video name (without extension)
+		// 在视频名称中搜索(不包括扩展名)
 		videoName := strings.ToLower(strings.TrimSuffix(video.Name, video.Extension))
 		if strings.Contains(videoName, query) {
 			results = append(results, video)

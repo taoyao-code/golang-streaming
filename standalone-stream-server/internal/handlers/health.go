@@ -10,14 +10,14 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-// HealthHandler handles health check requests
+// HealthHandler 处理健康检查请求
 type HealthHandler struct {
 	config            *models.Config
 	videoService      *services.VideoService
 	connectionLimiter *middleware.ConnectionLimiter
 }
 
-// NewHealthHandler creates a new health handler
+// NewHealthHandler 创建新的健康检查处理器
 func NewHealthHandler(config *models.Config, videoService *services.VideoService, connLimiter *middleware.ConnectionLimiter) *HealthHandler {
 	return &HealthHandler{
 		config:            config,
@@ -26,7 +26,7 @@ func NewHealthHandler(config *models.Config, videoService *services.VideoService
 	}
 }
 
-// Health returns server health status
+// Health 返回服务器健康状态
 func (h *HealthHandler) Health(c *fiber.Ctx) error {
 	stats := h.videoService.GetStats()
 
@@ -56,7 +56,7 @@ func (h *HealthHandler) Health(c *fiber.Ctx) error {
 	return c.JSON(response)
 }
 
-// Info returns API information
+// Info 返回 API 信息
 func (h *HealthHandler) Info(c *fiber.Ctx) error {
 	directories := h.videoService.GetDirectoriesInfo()
 
@@ -106,7 +106,7 @@ func (h *HealthHandler) Info(c *fiber.Ctx) error {
 	return c.JSON(response)
 }
 
-// Ping provides a simple ping endpoint
+// Ping 提供简单的 ping 端点
 func (h *HealthHandler) Ping(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{
 		"message":   "pong",
@@ -114,7 +114,7 @@ func (h *HealthHandler) Ping(c *fiber.Ctx) error {
 	})
 }
 
-// Ready checks if the server is ready to serve requests
+// Ready 检查服务器是否准备好处理请求
 func (h *HealthHandler) Ready(c *fiber.Ctx) error {
 	// Check if video directories are accessible
 	directories := h.videoService.GetDirectoriesInfo()
@@ -139,7 +139,7 @@ func (h *HealthHandler) Ready(c *fiber.Ctx) error {
 	})
 }
 
-// Live provides a liveness probe endpoint
+// Live 提供存活探针端点
 func (h *HealthHandler) Live(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{
 		"status":    "alive",

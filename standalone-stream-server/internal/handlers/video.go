@@ -12,13 +12,13 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-// VideoHandler handles video-related requests
+// VideoHandler 处理视频相关请求
 type VideoHandler struct {
 	config       *models.Config
 	videoService *services.VideoService
 }
 
-// NewVideoHandler creates a new video handler
+// NewVideoHandler 创建新的视频处理器
 func NewVideoHandler(config *models.Config, videoService *services.VideoService) *VideoHandler {
 	return &VideoHandler{
 		config:       config,
@@ -26,7 +26,7 @@ func NewVideoHandler(config *models.Config, videoService *services.VideoService)
 	}
 }
 
-// ListAllVideos returns all videos from all enabled directories
+// ListAllVideos 返回所有启用目录中的所有视频
 func (vh *VideoHandler) ListAllVideos(c *fiber.Ctx) error {
 	videos, err := vh.videoService.ListAllVideos()
 	if err != nil {
@@ -53,7 +53,7 @@ func (vh *VideoHandler) ListAllVideos(c *fiber.Ctx) error {
 	return c.JSON(response)
 }
 
-// ListVideosInDirectory returns videos from a specific directory
+// ListVideosInDirectory 返回指定目录中的视频
 func (vh *VideoHandler) ListVideosInDirectory(c *fiber.Ctx) error {
 	directory := c.Params("directory")
 	if directory == "" {
@@ -79,11 +79,11 @@ func (vh *VideoHandler) ListVideosInDirectory(c *fiber.Ctx) error {
 	return c.JSON(response)
 }
 
-// ListDirectories returns information about all video directories
+// ListDirectories 返回所有视频目录的信息
 func (vh *VideoHandler) ListDirectories(c *fiber.Ctx) error {
 	directories := vh.videoService.GetDirectoriesInfo()
 
-	// Add query parameter to include videos in response
+	// 添加查询参数以在响应中包含视频
 	includeVideos := c.Query("include_videos", "false")
 	if includeVideos == "true" {
 		for i := range directories {
@@ -113,7 +113,7 @@ func (vh *VideoHandler) ListDirectories(c *fiber.Ctx) error {
 	return c.JSON(response)
 }
 
-// StreamVideo streams a video file with range support
+// StreamVideo 流式传输视频文件，支持范围请求
 func (vh *VideoHandler) StreamVideo(c *fiber.Ctx) error {
 	videoID := c.Params("videoid")
 	if videoID == "" {
@@ -122,7 +122,7 @@ func (vh *VideoHandler) StreamVideo(c *fiber.Ctx) error {
 		})
 	}
 
-	// Find the video
+	// 查找视频
 	video, err := vh.videoService.FindVideoByID(videoID)
 	if err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
@@ -137,7 +137,7 @@ func (vh *VideoHandler) StreamVideo(c *fiber.Ctx) error {
 
 // streamVideoFile handles the actual streaming logic for both streaming methods
 func (vh *VideoHandler) streamVideoFile(c *fiber.Ctx, video *services.VideoInfo) error {
-	// Get file info first
+	// 首先获取文件信息
 	stat, err := os.Stat(video.Path)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
@@ -146,17 +146,17 @@ func (vh *VideoHandler) streamVideoFile(c *fiber.Ctx, video *services.VideoInfo)
 		})
 	}
 
-	// Set headers
+	// 设置头
 	c.Set("Content-Type", video.ContentType)
 	c.Set("Accept-Ranges", "bytes")
 	c.Set("Content-Length", strconv.FormatInt(stat.Size(), 10))
 	c.Set("Cache-Control", vh.config.Video.StreamingSettings.CacheControl)
 	c.Set("Last-Modified", stat.ModTime().UTC().Format("Mon, 02 Jan 2006 15:04:05 GMT"))
 
-	// Handle range requests
+	// 处理范围请求
 	rangeHeader := c.Get("Range")
 	if rangeHeader != "" && vh.config.Video.StreamingSettings.RangeSupport {
-		// For range requests, we still need to open the file manually
+		// 对于范围请求，我们仍需要手动打开文件
 		file, err := os.Open(video.Path)
 		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
@@ -168,7 +168,7 @@ func (vh *VideoHandler) streamVideoFile(c *fiber.Ctx, video *services.VideoInfo)
 		return vh.handleRangeRequest(c, file, stat.Size(), rangeHeader)
 	}
 
-	// Send entire file - use SendFile for better compatibility
+	// 发送整个文件 - 使用 SendFile 以获得更好的兼容性
 	return c.SendFile(video.Path)
 }
 
@@ -223,7 +223,7 @@ func (vh *VideoHandler) handleRangeRequest(c *fiber.Ctx, file *os.File, fileSize
 	// Calculate content length
 	contentLength := end - start + 1
 
-	// Set headers for partial content
+	// 设置头 for partial content
 	c.Status(fiber.StatusPartialContent)
 	c.Set("Content-Range", fmt.Sprintf("bytes %d-%d/%d", start, end, fileSize))
 	c.Set("Content-Length", strconv.FormatInt(contentLength, 10))
@@ -261,7 +261,7 @@ func (vh *VideoHandler) handleRangeRequest(c *fiber.Ctx, file *os.File, fileSize
 	return nil
 }
 
-// GetVideoInfo returns detailed information about a specific video
+// GetVideoInfo 返回特定视频的详细信息
 func (vh *VideoHandler) GetVideoInfo(c *fiber.Ctx) error {
 	videoID := c.Params("video-id")
 	if videoID == "" {
@@ -282,7 +282,7 @@ func (vh *VideoHandler) GetVideoInfo(c *fiber.Ctx) error {
 	return c.JSON(video)
 }
 
-// SearchVideos searches for videos by name across all directories
+// SearchVideos 在所有目录中按名称搜索视频
 func (vh *VideoHandler) SearchVideos(c *fiber.Ctx) error {
 	query := c.Query("q")
 	if query == "" {
@@ -325,7 +325,7 @@ func (vh *VideoHandler) SearchVideos(c *fiber.Ctx) error {
 	return c.JSON(response)
 }
 
-// StreamVideoByDirectory streams a video file from a specific directory
+// StreamVideoByDirectory 从指定目录流式传输视频文件
 func (vh *VideoHandler) StreamVideoByDirectory(c *fiber.Ctx) error {
 	directory := c.Params("directory")
 	videoID := c.Params("videoid")
@@ -339,7 +339,7 @@ func (vh *VideoHandler) StreamVideoByDirectory(c *fiber.Ctx) error {
 	// Construct the full video ID
 	fullVideoID := directory + ":" + videoID
 
-	// Find the video
+	// 查找视频
 	video, err := vh.videoService.FindVideoByID(fullVideoID)
 	if err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
@@ -353,7 +353,7 @@ func (vh *VideoHandler) StreamVideoByDirectory(c *fiber.Ctx) error {
 	return vh.streamVideoFile(c, video)
 }
 
-// ValidateVideo validates if a video file is accessible and properly formatted
+// ValidateVideo 验证视频文件是否可访问且格式正确
 func (vh *VideoHandler) ValidateVideo(c *fiber.Ctx) error {
 	videoID := c.Params("video-id")
 	if videoID == "" {
@@ -362,7 +362,7 @@ func (vh *VideoHandler) ValidateVideo(c *fiber.Ctx) error {
 		})
 	}
 
-	// Find the video
+	// 查找视频
 	video, err := vh.videoService.FindVideoByID(videoID)
 	if err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
