@@ -90,6 +90,9 @@ func main() {
 	// 启动调度器服务
 	if err := schedulerService.Start(); err != nil {
 		log.Printf("Warning: Failed to start scheduler service: %v", err)
+		log.Printf("The server will continue running, but background cleanup tasks will be unavailable")
+	} else {
+		log.Printf("Scheduler service started successfully")
 	}
 
 	// 启动服务器

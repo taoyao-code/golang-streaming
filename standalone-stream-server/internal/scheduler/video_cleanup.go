@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"sync"
+	"time"
 )
 
 // VideoCleanupService handles video file cleanup tasks
@@ -142,5 +143,5 @@ func (vcs *VideoCleanupService) GetStats() (map[string]interface{}, error) {
 // CleanupOldTasks removes old completed and failed tasks
 func (vcs *VideoCleanupService) CleanupOldTasks() error {
 	// Clean up tasks older than 24 hours
-	return vcs.storage.CleanupCompletedTasks(24 * 60 * 60 * 1000000000) // 24 hours in nanoseconds
+	return vcs.storage.CleanupCompletedTasks(24 * time.Hour)
 }

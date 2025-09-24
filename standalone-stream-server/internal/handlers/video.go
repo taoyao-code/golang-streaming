@@ -22,10 +22,17 @@ type VideoHandler struct {
 
 // NewVideoHandler 创建新的视频处理器
 func NewVideoHandler(config *models.Config, videoService *services.VideoService) *VideoHandler {
+	// Use configurable tokens per second, fallback to 1/4 of max connections if not set
+	tokensPerSecond := config.Server.TokensPerSecond
+	if tokensPerSecond == 0 {
+		// Default: 1/4 of max connections (legacy behavior)
+		tokensPerSecond = config.Server.MaxConns / 4
+	}
+	
 	// Create streaming flow controller based on config
 	streamingFlowController := middleware.NewStreamingFlowController(
-		config.Server.MaxConns,    // max connections
-		config.Server.MaxConns/4,  // tokens per second (1/4 of max connections)
+		config.Server.MaxConns, // max connections
+		tokensPerSecond,        // tokens per second
 	)
 	
 	return &VideoHandler{
