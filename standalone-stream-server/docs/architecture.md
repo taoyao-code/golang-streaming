@@ -165,7 +165,7 @@ sequenceDiagram
 
     Note over API,FileSystem: 视频删除调度流程
 
-    API->>SchedulerService: POST /scheduler/video-delete/video-id
+    API->>SchedulerService: POST /api/scheduler/video-delete/video-id
     SchedulerService->>TaskStorage: 添加删除任务
     TaskStorage->>TaskStorage: 保存任务到文件
     TaskStorage-->>SchedulerService: 任务已保存
