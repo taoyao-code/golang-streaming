@@ -4,6 +4,7 @@
 streaming-server
 streaming-server.exe
 standalone-stream-server
+server
 
 # Logs
 logs/
