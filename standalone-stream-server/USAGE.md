@@ -3,27 +3,29 @@
 ## Quick Test Commands
 
 ### Basic Server Operations
+
 ```bash
 # Build and run with defaults
-./deploy.sh run
+./scripts/deploy.sh run
 
 # Custom configuration
-./deploy.sh run -p 8080 -d /path/to/videos -c 200
+./scripts/deploy.sh run -p 8080 -d /path/to/videos -c 200
 
 # Build only
-./deploy.sh build
+./scripts/deploy.sh build
 
 # Generate systemd service
-./deploy.sh service
+./scripts/deploy.sh service
 
 # Generate Docker files
-./deploy.sh docker
+./scripts/deploy.sh docker
 
 # Clean build artifacts
-./deploy.sh clean
+./scripts/deploy.sh clean
 ```
 
 ### API Testing
+
 ```bash
 # Health check
 curl http://localhost:9000/health
@@ -45,6 +47,7 @@ curl http://localhost:9000/api/info
 ```
 
 ### HTML5 Video Integration
+
 ```html
 <!-- Basic video player with seeking support -->
 <video controls width="800">
@@ -68,6 +71,7 @@ fetch('http://localhost:9000/api/videos')
 ```
 
 ### Performance Testing
+
 ```bash
 # Test concurrent connections
 for i in {1..10}; do
@@ -81,25 +85,61 @@ curl -H "Range: bytes=1024-2048" http://localhost:9000/stream/video-id
 ```
 
 ### Docker Deployment
+
+#### 标准部署（x86_64）
+
 ```bash
 # Generate Docker files
-./deploy.sh docker
+./scripts/deploy.sh docker
 
-# Build and run with Docker
+# Build and run with Docker Compose
 docker-compose up --build
 
 # Or with Docker directly
 docker build -t streaming-server .
-docker run -p 9000:9000 -v ./videos:/root/videos streaming-server
+docker run -p 9000:9000 -v ./videos:/app/videos streaming-server
+```
+
+#### ARM64 架构部署
+
+```bash
+# 使用 ARM64 构建脚本（推荐）
+./build-arm64.sh
+
+# 启动服务
+docker-compose up -d
+
+# 验证架构
+docker exec streaming-server uname -m
+# 期望输出: aarch64
+
+# 手动构建 ARM64 镜像
+docker buildx build --platform linux/arm64 -t streaming-server:arm64 --load .
+docker run -p 9000:9000 -v ./videos:/app/videos streaming-server:arm64
+```
+
+#### 多架构构建
+
+```bash
+# 构建支持多架构的镜像
+docker buildx build \
+  --platform linux/amd64,linux/arm64 \
+  -t streaming-server:multi-arch \
+  --push .
+
+# 拉取并运行（自动选择架构）
+docker pull streaming-server:multi-arch
+docker run -p 9000:9000 streaming-server:multi-arch
 ```
 
 ### Production Deployment
+
 ```bash
 # Build optimized binary
 go build -ldflags="-s -w" -o streaming-server
 
 # Generate systemd service
-./deploy.sh service
+./scripts/deploy.sh service
 
 # Install as system service
 sudo cp standalone-stream-server.service /etc/systemd/system/
@@ -114,6 +154,7 @@ sudo journalctl -u standalone-stream-server -f
 ### Configuration Examples
 
 #### Basic config.json
+
 ```json
 {
   "port": 9000,
@@ -124,6 +165,7 @@ sudo journalctl -u standalone-stream-server -f
 ```
 
 #### Production config.json
+
 ```json
 {
   "port": 80,
@@ -136,12 +178,14 @@ sudo journalctl -u standalone-stream-server -f
 ### Troubleshooting
 
 #### Common Issues
+
 1. **Port already in use**: Change port in config or use `-p` flag
 2. **Permission denied**: Ensure video directory is readable
 3. **File not found**: Check video ID matches filename (without extension)
 4. **Range requests not working**: Ensure HTTP/1.1 client and proper headers
 
 #### Logs
+
 ```bash
 # View real-time logs
 tail -f logs/streaming-server.log
@@ -154,6 +198,7 @@ sudo journalctl -u standalone-stream-server -f
 ```
 
 #### Testing Range Requests
+
 ```bash
 # Test if range requests work
 curl -v -H "Range: bytes=0-1023" http://localhost:9000/stream/video-id

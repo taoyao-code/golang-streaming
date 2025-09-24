@@ -16,8 +16,9 @@ RUN go mod download
 # Copy source code
 COPY . .
 
-# Build the application
-RUN CGO_ENABLED=0 GOOS=linux go build \
+# Build the application with multi-architecture support
+ARG TARGETARCH
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=$TARGETARCH go build \
     -a -installsuffix cgo \
     -ldflags="-s -w -X main.AppVersion=2.0.0-docker" \
     -o streaming-server \

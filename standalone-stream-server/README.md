@@ -58,6 +58,24 @@ standalone-stream-server/
 │       └── config.go         # 配置数据结构
 ├── configs/
 │   └── config.yaml           # 默认 YAML 配置
+├── docs/                     # 文档目录
+│   ├── API_INTEGRATION_GUIDE.md  # API对接完整指南
+│   ├── QUICK_START.md            # 快速开始指南
+│   ├── architecture.md           # 系统架构文档
+│   └── application-flow.md       # 应用流程文档
+├── examples/                 # 示例代码
+│   ├── clients/              # 客户端SDK
+│   │   ├── javascript_client.js  # JavaScript客户端
+│   │   └── python_client.py      # Python客户端
+│   └── integrations/         # 集成示例
+│       └── integration_examples.md  # 全平台集成指南
+├── scripts/                  # 脚本目录
+│   ├── deploy.sh             # 部署脚本
+│   ├── test.sh               # 测试脚本
+│   └── e2e_test.sh           # 端到端测试脚本
+├── videos/                   # 视频存储目录
+├── web/                      # Web界面
+├── build-arm64.sh            # ARM64构建脚本
 ├── go.mod                    # Go 模块定义
 ├── go.sum                    # Go 模块校验和
 └── README.md                 # 本文件
@@ -94,6 +112,56 @@ go install ./cmd/server
 # 显示版本信息
 ./streaming-server --version
 ```
+
+### Docker 部署
+
+#### 标准 x86_64 部署
+
+```bash
+# 使用 Docker Compose 启动
+docker-compose up -d
+
+# 查看日志
+docker-compose logs -f streaming-server
+
+# 停止服务
+docker-compose down
+```
+
+#### ARM64 架构部署
+
+```bash
+# 构建 ARM64 镜像
+./build-arm64.sh
+
+# 启动服务
+docker-compose up -d
+
+# 验证架构
+docker exec streaming-server uname -m
+# 输出: aarch64
+
+# 手动构建 ARM64 镜像（可选）
+docker buildx build --platform linux/arm64 -t streaming-server:arm64 --load .
+```
+
+#### 多架构构建
+
+```bash
+# 构建支持多架构的镜像
+docker buildx build \
+  --platform linux/amd64,linux/arm64 \
+  -t streaming-server:multi-arch \
+  --push .
+```
+
+### 📚 详细文档
+
+- **[快速开始指南](./docs/QUICK_START.md)** - 5分钟快速部署和测试
+- **[ARM64部署指南](./docs/ARM64_DEPLOYMENT.md)** - Apple Silicon、树莓派等ARM64架构部署
+- **[API对接指南](./docs/API_INTEGRATION_GUIDE.md)** - 完整的第三方集成文档
+- **[客户端示例](./examples/clients/)** - JavaScript和Python客户端代码
+- **[集成示例](./examples/integrations/)** - 全平台集成参考
 
 ### 配置
 
