@@ -17,6 +17,7 @@ type ServerConfig struct {
 	ReadTimeout     time.Duration `mapstructure:"read_timeout" yaml:"read_timeout"`
 	WriteTimeout    time.Duration `mapstructure:"write_timeout" yaml:"write_timeout"`
 	MaxConns        int           `mapstructure:"max_connections" yaml:"max_connections"`
+	TokensPerSecond int           `mapstructure:"tokens_per_second" yaml:"tokens_per_second"`
 	GracefulTimeout time.Duration `mapstructure:"graceful_timeout" yaml:"graceful_timeout"`
 }
 

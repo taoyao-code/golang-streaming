@@ -182,6 +182,14 @@ func (w *Worker) startWorker() {
 	for {
 		select {
 		case <-w.ticker.C:
+			// Check if worker is still running before starting task
+			w.mu.RLock()
+			if !w.running {
+				w.mu.RUnlock()
+				return
+			}
+			w.mu.RUnlock()
+			
 			if w.runner != nil {
 				go w.runner.Start()
 			}

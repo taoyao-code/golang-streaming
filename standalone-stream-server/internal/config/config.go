@@ -69,6 +69,7 @@ func setDefaults() {
 	viper.SetDefault("server.read_timeout", "30s")
 	viper.SetDefault("server.write_timeout", "30s")
 	viper.SetDefault("server.max_connections", 100)
+	viper.SetDefault("server.tokens_per_second", 0) // 0 means auto-calculate (max_connections/4)
 	viper.SetDefault("server.graceful_timeout", "30s")
 
 	// 视频默认值
@@ -188,6 +189,7 @@ server:
   read_timeout: "30s"
   write_timeout: "30s"
   max_connections: 100
+  tokens_per_second: 25  # Flow control tokens per second (0 = auto-calculate as max_connections/4)
   graceful_timeout: "30s"
 
 video:

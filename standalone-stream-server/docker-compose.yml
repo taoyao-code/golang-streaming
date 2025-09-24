@@ -1,0 +1,112 @@
+version: '3.8'
+
+services:
+  # Main streaming server
+  streaming-server:
+    build: .
+    container_name: streaming-server
+    ports:
+      - "9000:9000"
+    volumes:
+      - ./videos:/app/videos
+      - ./thumbnails:/app/thumbnails
+      - ./logs:/app/logs
+      - ./configs:/app/configs:ro
+    environment:
+      - TZ=Asia/Shanghai
+      - STREAMING_LOGGING_LEVEL=info
+      - STREAMING_LOGGING_FORMAT=json
+    restart: unless-stopped
+    networks:
+      - streaming-network
+    depends_on:
+      - redis
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Reverse proxy and load balancer
+  nginx:
+    image: nginx:alpine
+    container_name: streaming-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - ./videos:/var/www/videos:ro
+    restart: unless-stopped
+    networks:
+      - streaming-network
+    depends_on:
+      - streaming-server
+
+  # Redis for caching and session storage
+  redis:
+    image: redis:7-alpine
+    container_name: streaming-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes
+    restart: unless-stopped
+    networks:
+      - streaming-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Prometheus for metrics collection
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: streaming-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    restart: unless-stopped
+    networks:
+      - streaming-network
+
+  # Grafana for dashboards
+  grafana:
+    image: grafana/grafana:latest
+    container_name: streaming-grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin123
+      - GF_USERS_ALLOW_SIGN_UP=false
+    restart: unless-stopped
+    networks:
+      - streaming-network
+    depends_on:
+      - prometheus
+
+volumes:
+  redis-data:
+  prometheus-data:
+  grafana-data:
+
+networks:
+  streaming-network:
+    driver: bridge

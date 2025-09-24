@@ -16,8 +16,10 @@ import (
 	"standalone-stream-server/internal/models"
 	"standalone-stream-server/internal/scheduler"
 	"standalone-stream-server/internal/services"
+	"standalone-stream-server/internal/utils"
 
 	"github.com/gofiber/fiber/v2"
+	"go.uber.org/zap"
 )
 
 var (
@@ -53,8 +55,19 @@ func main() {
 		log.Fatalf("Failed to load configuration: %v", err)
 	}
 
+	// 初始化结构化日志
+	if err := utils.InitLogger(cfg.Logging.Level, cfg.Logging.Format); err != nil {
+		log.Fatalf("Failed to initialize logger: %v", err)
+	}
+	defer utils.Sync()
+
+	utils.Logger.Info("Starting server",
+		zap.String("version", AppVersion),
+	)
+
 	// 初始化服务
 	videoService := services.NewVideoService(cfg)
+	metadataService := services.NewMetadataService(cfg)
 	schedulerService := scheduler.NewSchedulerService(cfg)
 
 	// 创建 Fiber 应用并配置
@@ -83,13 +96,18 @@ func main() {
 	videoHandler := handlers.NewVideoHandler(cfg, videoService)
 	uploadHandler := handlers.NewUploadHandler(cfg, videoService)
 	schedulerHandler := handlers.NewSchedulerHandler(cfg, schedulerService)
+	thumbnailHandler := handlers.NewThumbnailHandler(cfg, videoService, metadataService)
+	metricsHandler := handlers.NewMetricsHandler(cfg)
 
 	// 设置路由
-	setupRoutes(app, healthHandler, videoHandler, uploadHandler, schedulerHandler)
+	setupRoutes(app, healthHandler, videoHandler, uploadHandler, schedulerHandler, thumbnailHandler, metricsHandler)
 
 	// 启动调度器服务
 	if err := schedulerService.Start(); err != nil {
-		log.Printf("Warning: Failed to start scheduler service: %v", err)
+		utils.LogError("scheduler_start", err)
+		utils.Logger.Warn("The server will continue running, but background cleanup tasks will be unavailable")
+	} else {
+		utils.Logger.Info("Scheduler service started successfully")
 	}
 
 	// 启动服务器
@@ -97,10 +115,12 @@ func main() {
 
 	// 记录启动信息
 	logStartupInfo(cfg, addr)
+	utils.LogServerStart(cfg.Server.Port, cfg.Server.Host)
 
 	// 优雅关闭
 	go func() {
 		if err := app.Listen(addr); err != nil {
+			utils.LogError("server_listen", err)
 			log.Fatalf("Failed to start server: %v", err)
 		}
 	}()
@@ -110,25 +130,27 @@ func main() {
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	<-c
 
-	log.Println("正在优雅关闭...")
+	utils.Logger.Info("Graceful shutdown initiated")
 
 	// 停止调度器服务
 	if err := schedulerService.Stop(); err != nil {
-		log.Printf("Warning: Failed to stop scheduler service: %v", err)
+		utils.LogError("scheduler_stop", err)
+	} else {
+		utils.Logger.Info("Scheduler service stopped successfully")
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), cfg.Server.GracefulTimeout)
 	defer cancel()
 
 	if err := app.ShutdownWithContext(ctx); err != nil {
-		log.Printf("Server shutdown error: %v", err)
+		utils.LogError("server_shutdown", err)
 	}
 
-	log.Println("服务器已停止")
+	utils.LogServerStop()
 }
 
 // setupRoutes 配置所有应用路由
-func setupRoutes(app *fiber.App, health *handlers.HealthHandler, video *handlers.VideoHandler, upload *handlers.UploadHandler, scheduler *handlers.SchedulerHandler) {
+func setupRoutes(app *fiber.App, health *handlers.HealthHandler, video *handlers.VideoHandler, upload *handlers.UploadHandler, scheduler *handlers.SchedulerHandler, thumbnail *handlers.ThumbnailHandler, metrics *handlers.MetricsHandler) {
 	// 健康检查和监控端点
 	app.Get("/health", health.Health)
 	app.Get("/ping", health.Ping)
@@ -138,6 +160,13 @@ func setupRoutes(app *fiber.App, health *handlers.HealthHandler, video *handlers
 	// API 信息
 	app.Get("/api/info", health.Info)
 
+	// 现代化管理界面
+	app.Static("/dashboard", "./web/dashboard.html")
+	app.Static("/player", "./web/player.html")
+
+	// Prometheus 指标端点
+	app.Get("/metrics", metrics.GetMetrics)
+	
 	// 视频管理端点
 	api := app.Group("/api")
 	{
@@ -155,7 +184,13 @@ func setupRoutes(app *fiber.App, health *handlers.HealthHandler, video *handlers
 		api.Get("/video/:video-id", video.GetVideoInfo)
 		api.Get("/video/:video-id/validate", video.ValidateVideo)
 		
-		// 流控统计
+		// 缩略图端点
+		api.Get("/thumbnail/:videoid", thumbnail.GetThumbnail)
+		api.Get("/thumbnails", thumbnail.ListThumbnails)
+		api.Get("/thumbnail/file/:filename", thumbnail.ServeThumbnailFile)
+		
+		// 系统统计和监控
+		api.Get("/system/stats", metrics.GetSystemStats)
 		api.Get("/streaming/stats", video.GetFlowControlStats)
 		
 		// 调度器管理
@@ -163,7 +198,7 @@ func setupRoutes(app *fiber.App, health *handlers.HealthHandler, video *handlers
 		api.Get("/scheduler/status", scheduler.Status)
 		api.Post("/scheduler/start", scheduler.Start)
 		api.Post("/scheduler/stop", scheduler.Stop)
-		api.Post("/scheduler/video-delete/:video-id", scheduler.AddVideoDeletionTask)
+		api.Post("/scheduler/video-delete/:videoid", scheduler.AddVideoDeletionTask)
 	}
 
 	// 视频流媒体端点（顺序很重要 - 更具体的路由在前）
@@ -177,9 +212,9 @@ func setupRoutes(app *fiber.App, health *handlers.HealthHandler, video *handlers
 		upload_group.Post("/:directory/batch", upload.UploadMultipleVideos)
 	}
 
-	// Root endpoint - redirect to API info
+	// Root endpoint - redirect to dashboard
 	app.Get("/", func(c *fiber.Ctx) error {
-		return c.Redirect("/api/info")
+		return c.Redirect("/dashboard")
 	})
 
 	// Serve video test player

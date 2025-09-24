@@ -12,13 +12,15 @@ import (
 
 // VideoService 处理视频相关操作
 type VideoService struct {
-	config *models.Config
+	config          *models.Config
+	metadataService *MetadataService
 }
 
 // NewVideoService 创建新的视频服务
 func NewVideoService(config *models.Config) *VideoService {
 	return &VideoService{
-		config: config,
+		config:          config,
+		metadataService: NewMetadataService(config),
 	}
 }
 
@@ -409,22 +411,26 @@ func (vs *VideoService) GetStats() map[string]interface{} {
 
 // extractVideoMetadata 提取视频文件的基本元数据
 func (vs *VideoService) extractVideoMetadata(filePath, ext string) VideoMetadata {
+	// Use the new metadata service for enhanced extraction
+	if metadata, err := vs.metadataService.ExtractMetadata(filePath); err == nil {
+		return metadata
+	}
+	
+	// Fallback to basic metadata based on file extension if service fails
 	metadata := VideoMetadata{
 		Format: strings.TrimPrefix(ext, "."),
 	}
 
-	// 现在，我们将提取基本的文件元数据
-	// In a production system, you'd want to use ffprobe or similar
+	// 现在，我们将提取基本的文件元数据  
+	// This is now a fallback when the metadata service fails
 	if stat, err := os.Stat(filePath); err == nil {
 		// 根据文件大小和编码器估计持续时间(非常粗略的估计)
 		switch ext {
 		case ".mp4", ".mov", ".m4v":
 			metadata.Codec = "H.264"
 			metadata.AudioCodec = "AAC"
-			// 粗略估计: ~1MB 每分钟的标准质量
-			if stat.Size() > 0 {
-				metadata.Duration = float64(stat.Size()) / (1024 * 1024) * 60 // Very rough estimate
-			}
+			metadata.Duration = 1 // Placeholder
+			metadata.Bitrate = 1000 * 144 // 144 kbps placeholder
 		case ".webm":
 			metadata.Codec = "VP8/VP9"
 			metadata.AudioCodec = "Vorbis/Opus"
